@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hand Hygiene Challenge｜洗手五時機挑戰</title>
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--ink:#262626;--muted:#737373;--main:#2f2f2f;--soft:#e9e9e6;--ok:#198754;--bad:#dc3545;--warn:#f5b942;--blue:#2d6cdf;}
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;background:linear-gradient(135deg,#f9faf7,#efefec);color:var(--ink)}
+.wrap{max-width:980px;margin:0 auto;padding:20px}.hero{min-height:100vh;display:flex;align-items:center;justify-content:center}.panel{background:rgba(255,255,255,.92);border:1px solid #e4e4df;border-radius:28px;box-shadow:0 20px 60px rgba(0,0,0,.10);padding:28px;width:100%}
+.title{font-size:clamp(34px,6vw,72px);line-height:1.05;margin:0 0 10px;font-weight:900;letter-spacing:-2px}.subtitle{font-size:20px;color:var(--muted);margin:0 0 26px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.stat{background:var(--soft);border-radius:20px;padding:16px;text-align:center}.stat b{font-size:28px;display:block}.btn{border:0;border-radius:18px;background:var(--main);color:white;font-weight:800;font-size:20px;padding:17px 24px;cursor:pointer;box-shadow:0 8px 0 #111;transition:.12s}.btn:active{transform:translateY(5px);box-shadow:0 3px 0 #111}.btn.secondary{background:#fff;color:var(--ink);border:2px solid #ddd;box-shadow:0 8px 0 #ddd}.btnrow{display:flex;gap:14px;flex-wrap:wrap;margin-top:22px}.topbar{display:flex;align-items:center;gap:12px;margin:18px 0}.pill{background:#fff;border:1px solid #e1e1dc;border-radius:999px;padding:10px 14px;font-weight:800}.progress{height:14px;background:#e8e8e2;border-radius:999px;overflow:hidden;flex:1}.bar{height:100%;width:0;background:linear-gradient(90deg,#333,#777);transition:.3s}.gamecard{background:var(--card);border-radius:30px;padding:26px;box-shadow:0 18px 50px rgba(0,0,0,.10);border:1px solid #e5e5e0}.scene{font-size:78px;text-align:center;margin:6px 0 12px}.q{font-size:clamp(25px,4vw,40px);font-weight:900;line-height:1.25;text-align:center;margin:8px 0 24px}.choices{display:grid;grid-template-columns:1fr 1fr;gap:14px}.choice{border:2px solid #ddd;background:#fff;border-radius:22px;padding:18px;font-size:21px;font-weight:850;text-align:left;cursor:pointer;transition:.12s;min-height:78px}.choice:hover{transform:translateY(-2px);border-color:#999}.choice.correct{background:#e9f7ef;border-color:var(--ok)}.choice.wrong{background:#fdebec;border-color:var(--bad)}.feedback{display:none;margin-top:18px;border-radius:22px;padding:18px;font-size:20px;font-weight:700}.feedback.ok{display:block;background:#e9f7ef;color:#0b5d32}.feedback.bad{display:block;background:#fdebec;color:#842029}.feedback small{display:block;color:#555;font-weight:600;margin-top:8px}.timer{font-size:26px}.timebar{height:10px;background:#eee;border-radius:999px;overflow:hidden;margin-top:12px}.timefill{height:100%;background:#333;width:100%}.end{text-align:center}.rank{font-size:74px;margin:12px 0}.analysis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:18px}.mini{background:#f2f2ef;border-radius:18px;padding:12px;font-size:14px}.mini b{display:block;font-size:22px}.note{background:#fff8e6;border:1px solid #ffe0a3;border-radius:20px;padding:16px;margin-top:16px;color:#5c4400}.hidden{display:none}.footer{color:#888;text-align:center;margin-top:16px;font-size:13px}@media(max-width:720px){.choices,.grid,.analysis{grid-template-columns:1fr}.wrap{padding:12px}.panel,.gamecard{border-radius:22px;padding:18px}.scene{font-size:58px}.choice{font-size:18px}.btn{width:100%}.btnrow{display:grid}.topbar{flex-wrap:wrap}.progress{order:3;flex-basis:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section id="start" class="hero">
+  <div class="panel">
+    <h1 class="title">🧼 洗手五時機挑戰</h1>
+    <p class="subtitle">情境式知識小遊戲：判斷每個臨床動作屬於哪一個手部衛生時機。</p>
+    <div class="grid">
+      <div class="stat"><b>65</b>題題庫</div><div class="stat"><b>10</b>題隨機抽題</div><div class="stat"><b>20s</b>每題限時</div>
+    </div>
+    <div class="note">玩法：選出最適合的 WHO 洗手五時機；若情境不符合手部衛生時機，請選「不需要洗手」。答對 +10 分，連續答對有 Combo 加分。</div>
+    <div class="btnrow"><button class="btn" onclick="startGame()">開始挑戰</button><button class="btn secondary" onclick="showMoments()">先看五時機</button></div>
+  </div>
+</section>
+
+<section id="learn" class="hidden hero"><div class="panel"><h2 class="title" style="font-size:44px">WHO 洗手五時機</h2><div class="grid">
+<div class="stat"><b>1</b>接觸病人前</div><div class="stat"><b>2</b>清潔／無菌技術前</div><div class="stat"><b>3</b>血體液暴露後</div><div class="stat"><b>4</b>接觸病人後</div><div class="stat"><b>5</b>接觸病人環境後</div><div class="stat"><b>🚫</b>不需要洗手情境</div></div><div class="btnrow"><button class="btn" onclick="startGame()">開始挑戰</button><button class="btn secondary" onclick="goHome()">回首頁</button></div></div></section>
+
+<section id="game" class="hidden">
+  <div class="topbar"><div class="pill">第 <span id="idx">1</span>/10 題</div><div class="pill">分數 <span id="score">0</span></div><div class="pill timer">⏱ <span id="time">20</span></div><div class="progress"><div id="bar" class="bar"></div></div></div>
+  <div class="gamecard">
+    <div id="scene" class="scene">🩺</div><div id="question" class="q"></div><div class="timebar"><div id="timefill" class="timefill"></div></div>
+    <div id="choices" class="choices"></div><div id="feedback" class="feedback"></div>
+  </div>
+</section>
+
+<section id="end" class="hidden hero"><div class="panel end"><h2 class="title" style="font-size:44px">挑戰完成</h2><div id="rank" class="rank">🏆</div><h3 id="finalText" style="font-size:32px;margin:0"></h3><p id="detail" class="subtitle"></p><div id="analysis" class="analysis"></div><div class="btnrow" style="justify-content:center"><button class="btn" onclick="startGame()">再玩一次</button><button class="btn secondary" onclick="goHome()">回首頁</button></div></div></section>
+<div class="footer">Hand Hygiene Challenge｜可單檔離線使用</div>
+</div>
+<script>
+const moments=["接觸病人前","清潔／無菌技術前","血體液暴露後","接觸病人後","接觸病人環境後","不需要洗手"];
+const bank=[
+['🩺','準備替病人測量血壓。','接觸病人前','尚未碰觸病人前，應先執行手部衛生。'],['🌡️','準備替病人量體溫。','接觸病人前','進行一般照護接觸前要先洗手。'],['🤝','準備協助病人翻身。','接觸病人前','直接接觸病人前要洗手。'],['👂','準備幫病人聽診。','接觸病人前','聽診前屬於接觸病人前。'],['🛏️','準備扶病人坐到床邊。','接觸病人前','扶病人前屬於接觸病人前。'],
+['💉','準備抽血，已備好針具。','清潔／無菌技術前','抽血穿刺前屬於清潔／無菌技術前。'],['🩹','準備進行傷口換藥。','清潔／無菌技術前','換藥前要保護病人避免感染。'],['🚽','準備插尿管。','清潔／無菌技術前','導尿屬於無菌技術前。'],['💧','準備接上靜脈輸液管路。','清潔／無菌技術前','操作侵入性管路前要洗手。'],['🧪','準備採集血液培養。','清潔／無菌技術前','採檢穿刺前屬於清潔／無菌技術前。'],
+['🩸','抽血完成，手套可能接觸到血液。','血體液暴露後','暴露血液後需立即手部衛生。'],['🤮','協助病人清理嘔吐物後。','血體液暴露後','嘔吐物屬於體液暴露。'],['🧻','更換被尿液污染的尿布後。','血體液暴露後','尿液屬於體液暴露。'],['🧴','處理引流液袋後。','血體液暴露後','引流液屬體液暴露風險。'],['🧤','脫下沾到血液的手套後。','血體液暴露後','手套不能取代手部衛生。'],
+['✅','幫病人量完血壓後準備離開。','接觸病人後','接觸病人後需洗手，避免帶出微生物。'],['🩺','聽診完成後。','接觸病人後','直接接觸病人後要洗手。'],['🛏️','協助病人翻身後。','接觸病人後','接觸病人後屬於五時機之一。'],['🤲','幫病人按摩背部後。','接觸病人後','身體接觸後需要手部衛生。'],['🧑‍⚕️','扶病人下床後。','接觸病人後','直接接觸病人後需洗手。'],
+['🛏️','整理病床欄杆後。','接觸病人環境後','床欄屬病人周遭環境。'],['🧹','整理床旁桌後，沒有碰到病人。','接觸病人環境後','即使未碰病人，接觸病人環境後仍需洗手。'],['🔔','調整病人床邊呼叫鈴後。','接觸病人環境後','呼叫鈴屬病人環境。'],['🪑','移動病人床邊椅後。','接觸病人環境後','床旁物品屬病人環境。'],['📋','拿起病人床尾病歷夾後。','接觸病人環境後','病人區域內物品接觸後需洗手。'],
+['💊','準備將口服藥交給病人。','接觸病人前','給藥前若會接觸病人，屬於接觸病人前。'],['🧫','準備替中心靜脈導管換藥。','清潔／無菌技術前','管路照護前需手部衛生。'],['🩸','血液濺到手套外側後。','血體液暴露後','血液暴露後需手部衛生。'],['👵','幫病人梳頭後。','接觸病人後','個人照護後需洗手。'],['📺','幫病人調整床邊遙控器後。','接觸病人環境後','遙控器屬高接觸表面。'],
+['🧼','進病房後，準備握住病人的手安慰。','接觸病人前','握手前需洗手。'],['💉','準備注射皮下注射藥物。','清潔／無菌技術前','注射前為清潔／無菌技術前。'],['🦠','清理痰液收集容器後。','血體液暴露後','痰液屬體液暴露。'],['🛌','幫病人移位到輪椅後。','接觸病人後','直接接觸後需手部衛生。'],['🧯','碰觸床旁輸液幫浦按鍵後。','接觸病人環境後','輸液幫浦在病人區域內。'],
+['👁️','準備替病人點眼藥。','清潔／無菌技術前','接觸黏膜或藥物給予前需手部衛生。'],['🩹','移除使用過的敷料後。','血體液暴露後','使用過敷料可能含血液或分泌物。'],['🫁','協助病人使用吸入器後。','接觸病人後','協助後屬接觸病人後。'],['🧺','拿起病人使用過的毛巾後。','接觸病人環境後','使用過物品屬病人周遭環境。'],['🧑','準備替病人測血糖。','清潔／無菌技術前','採血穿刺前屬清潔／無菌技術前。'],
+['💬','站在床旁與病人說話，未碰病人或病人環境，之後直接離開。','不需要洗手','未接觸病人、血體液、清潔／無菌部位或病人周遭環境，且沒有下一步照護接觸。'],['🧤','戴手套前，準備做傷口換藥。','清潔／無菌技術前','戴手套前仍需手部衛生。'],['🚿','協助病人擦澡後。','接觸病人後','直接照護後需手部衛生。'],['🧽','擦拭病人床旁桌後。','接觸病人環境後','病人環境清潔後需手部衛生。'],['🧴','處理尿袋排空後。','血體液暴露後','尿液暴露風險後要洗手。'],
+['🫀','準備貼心電圖電極。','接觸病人前','接觸病人皮膚前需洗手。'],['🧬','準備採鼻咽拭子。','清潔／無菌技術前','採檢前需手部衛生。'],['🩻','協助病人擺位照 X 光後。','接觸病人後','直接接觸病人後要洗手。'],['🧻','清理病人口鼻分泌物後。','血體液暴露後','分泌物暴露後需洗手。'],['🛎️','按過病人床旁電鈴按鈕後。','接觸病人環境後','床旁電鈴屬病人環境。']
+,['🚶','只是從病房門口經過，沒有進入病人區域，也沒有碰觸任何物品。','不需要洗手','沒有接觸病人、病人環境或血體液。']
+,['👀','在護理站查看病人電子病歷，沒有進入病房。','不需要洗手','查看電子病歷不屬於 WHO 五時機。']
+,['📞','在護理站接聽病人家屬電話，沒有接觸病人或病人環境。','不需要洗手','沒有發生病人區域或照護接觸。']
+,['🧑‍⚕️','站在病房門口詢問病人姓名，沒有碰觸病人或病人環境，之後離開。','不需要洗手','單純口頭詢問且沒有接觸，不符合五時機。']
+,['📋','在乾淨區整理自己的交班單，沒有進入病人區域。','不需要洗手','乾淨區文書作業本身不屬於五時機。']
+,['🚪','打開一般走廊的門，尚未進入病人照護區。','不需要洗手','未接觸病人或病人周遭環境。']
+,['🖥️','在護理站使用共用電腦查檢驗報告，沒有接觸病人。','不需要洗手','不屬於 WHO 五時機；但可依院內一般環境清潔政策執行手部衛生。']
+,['🗣️','隔著櫃台向病人說明掛號流程，沒有肢體接觸。','不需要洗手','沒有直接接觸病人或病人周遭環境。']
+,['📦','在庫房拿取未拆封的乾淨耗材，尚未接觸病人。','不需要洗手','單純拿取乾淨耗材不屬於五時機；若接著進行清潔／無菌技術，才需要。']
+,['🧥','穿上自己的白袍後，尚未接觸病人或病人環境。','不需要洗手','穿著個人物品本身不是五時機。']
+,['🧴','看到牆上的酒精乾洗手瓶，但沒有要進行照護，也沒有接觸病人環境。','不需要洗手','沒有符合手部衛生指徵。']
+,['🚶‍♀️','進入病房走道巡視，沒有進入床邊區域，也沒有碰觸任何物品。','不需要洗手','未接觸病人或病人周遭環境。']
+,['📢','在病房外向同仁口頭交班，沒有接觸病人相關物品。','不需要洗手','口頭交班本身不符合五時機。']
+,['🪪','在護理站刷識別證簽到，尚未開始照護病人。','不需要洗手','沒有照護接觸或病人環境接觸。']
+,['☕','在休息室喝水後，尚未進入照護區。','不需要洗手','此題不屬 WHO 五時機；進入照護區並接觸病人前才需要。']
+
+].map((x,i)=>({id:i,icon:x[0],q:x[1],answer:x[2],explain:x[3]}));
+let game=[],cur=0,score=0,combo=0,timer=null,time=20,answered=false,miss={}; moments.forEach(m=>miss[m]=0);
+function $(id){return document.getElementById(id)} function hideAll(){['start','learn','game','end'].forEach(id=>$(id).classList.add('hidden'))}
+function shuffle(a){return [...a].sort(()=>Math.random()-0.5)}
+function showMoments(){hideAll();$('learn').classList.remove('hidden')} function goHome(){clearInterval(timer);hideAll();$('start').classList.remove('hidden')}
+function startGame(){clearInterval(timer);game=shuffle(bank).slice(0,10);cur=0;score=0;combo=0;moments.forEach(m=>miss[m]=0);hideAll();$('game').classList.remove('hidden');renderQ()}
+function renderQ(){answered=false;const item=game[cur];$('idx').textContent=cur+1;$('score').textContent=score;$('bar').style.width=((cur)/10*100)+'%';$('scene').textContent=item.icon;$('question').textContent=item.q;const choices=shuffle(moments);$('choices').innerHTML='';choices.forEach(c=>{const b=document.createElement('button');b.className='choice';b.textContent=c;b.onclick=()=>choose(c,b);$('choices').appendChild(b)});$('feedback').className='feedback';$('feedback').innerHTML='';startTimer()}
+function startTimer(){clearInterval(timer);time=20;$('time').textContent=time;$('timefill').style.width='100%';timer=setInterval(()=>{time--;$('time').textContent=time;$('timefill').style.width=(time/20*100)+'%';if(time<=0){clearInterval(timer);timeout()}},1000)}
+function choose(c,btn){if(answered)return;answered=true;clearInterval(timer);const item=game[cur];const buttons=[...document.querySelectorAll('.choice')];buttons.forEach(b=>{b.disabled=true;if(b.textContent===item.answer)b.classList.add('correct')});if(c===item.answer){combo++;let add=combo>=3?20:combo==2?15:10;score+=add;$('feedback').className='feedback ok';$('feedback').innerHTML=`✅ 正確！ +${add}<small>${item.answer}｜${item.explain}</small>`}else{combo=0;miss[item.answer]++;btn.classList.add('wrong');$('feedback').className='feedback bad';$('feedback').innerHTML=`❌ 答錯。正確答案：${item.answer}<small>${item.explain}</small>`} $('score').textContent=score;setTimeout(nextQ,1800)}
+function timeout(){if(answered)return;answered=true;combo=0;const item=game[cur];miss[item.answer]++;document.querySelectorAll('.choice').forEach(b=>{b.disabled=true;if(b.textContent===item.answer)b.classList.add('correct')});$('feedback').className='feedback bad';$('feedback').innerHTML=`⏰ 時間到。正確答案：${item.answer}<small>${item.explain}</small>`;setTimeout(nextQ,1800)}
+function nextQ(){cur++;if(cur>=game.length){endGame()}else renderQ()}
+function endGame(){hideAll();$('end').classList.remove('hidden');$('bar').style.width='100%';const correct=Math.round(score/10);let pct=Math.min(100,Math.round(score/100*100));let rank='📚 再挑戰一次',icon='📚';if(score>=95){rank='Hand Hygiene Master';icon='🏆'}else if(score>=80){rank='Infection Control Expert';icon='🥈'}else if(score>=60){rank='Good Job';icon='🥉'}$('rank').textContent=icon;$('finalText').textContent=`${score} 分｜${rank}`;$('detail').textContent=`本次隨機抽題 10 題。Combo 加分已納入總分。`;let html='';moments.forEach(m=>{html+=`<div class="mini"><b>${miss[m]}</b>${m}<br>答錯次數</div>`});$('analysis').innerHTML=html}
+</script>
+</body>
+</html>
