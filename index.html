@@ -1,31 +1,197 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RayLogic ID Education</title>
-<style>
-body{margin:0;font-family:Arial,"Noto Sans TC",sans-serif;background:#f4f8fb;color:#1f2937}
-header{background:#0f4c81;color:#fff;padding:50px 20px;text-align:center}
-.container{max-width:900px;margin:40px auto;padding:0 20px}
-.card{background:#fff;border-radius:16px;padding:30px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.08)}
-.button{display:inline-block;margin-top:20px;padding:12px 28px;background:#0f4c81;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold}
-footer{text-align:center;color:#666;margin:40px 0}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RayLogic ID Education</title>
+  <style>
+    :root {
+      --primary: #0f4c81;
+      --primary-light: #e8f3fb;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --background: #f4f8fb;
+      --card: #ffffff;
+      --border: #dbeafe;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0f4c81, #1677a8);
+      color: white;
+      padding: 56px 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0 0 12px;
+      font-size: 2.2rem;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 1.1rem;
+      opacity: 0.95;
+    }
+
+    main {
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .intro {
+      text-align: center;
+      margin-bottom: 28px;
+      color: var(--muted);
+    }
+
+    .section-title {
+      margin: 32px 0 16px;
+      font-size: 1.35rem;
+      color: var(--primary);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 8px 24px rgba(15, 76, 129, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px rgba(15, 76, 129, 0.14);
+    }
+
+    .emoji {
+      font-size: 2.4rem;
+      margin-bottom: 8px;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 1.35rem;
+    }
+
+    .card .subtitle {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .tag {
+      display: inline-block;
+      margin-bottom: 18px;
+      padding: 4px 10px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .button {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 12px 22px;
+      background: var(--primary);
+      color: white;
+      text-decoration: none;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+
+    .button:hover {
+      background: #16629d;
+    }
+
+    .note {
+      margin-top: 34px;
+      padding: 18px 20px;
+      background: white;
+      border-left: 5px solid var(--primary);
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      padding: 30px 20px 40px;
+      font-size: 0.9rem;
+    }
+  </style>
 </head>
 <body>
-<header>
-<h1>🩺 Infectious Disease Education</h1>
-<p>感染症互動教學平台</p>
-</header>
-<div class="container">
-<div class="card">
-<h2>🧼 洗手五時機</h2>
-<p>WHO Five Moments for Hand Hygiene</p>
-<p>透過互動遊戲學習醫療照護中的洗手五時機。</p>
-<a class="button" href="hand-hygiene/">開始遊戲</a>
-</div>
-</div>
-<footer>© 2026 RayLogic ID Education</footer>
+
+  <header>
+    <h1>🩺 RayLogic ID Education</h1>
+    <p>感染症互動教學平台</p>
+  </header>
+
+  <main>
+    <p class="intro">
+      這裡收錄感染症與感染管制相關的互動式教學遊戲，適合課堂教學、在職教育與自我練習使用。
+    </p>
+
+    <h2 class="section-title">目前可使用的互動教材</h2>
+
+    <div class="grid">
+      <article class="card">
+        <div class="emoji">🧼</div>
+        <span class="tag">Infection Control</span>
+        <h3>洗手五時機</h3>
+        <p class="subtitle">WHO Five Moments for Hand Hygiene</p>
+        <p>透過情境判斷遊戲，練習醫療照護中的洗手五時機。</p>
+        <a class="button" href="hand-hygiene/">開始遊戲</a>
+      </article>
+
+      <!--
+      之後新增遊戲時，複製下面這段，並修改：
+      1. emoji
+      2. tag
+      3. h3 遊戲名稱
+      4. subtitle
+      5. 說明文字
+      6. href 裡的資料夾名稱
+
+      <article class="card">
+        <div class="emoji">👕</div>
+        <span class="tag">Infection Control</span>
+        <h3>PPE 穿脫挑戰</h3>
+        <p class="subtitle">Donning and Doffing Practice</p>
+        <p>透過互動題目練習 PPE 穿脫順序與污染風險判斷。</p>
+        <a class="button" href="ppe/">開始遊戲</a>
+      </article>
+      -->
+    </div>
+
+  </main>
+
+  <footer>
+    © 2026 rayLogic ID Education
+  </footer>
+
 </body>
 </html>
