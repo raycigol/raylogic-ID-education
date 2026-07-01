@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>On-demand PrEP 情境判斷小遊戲</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--text:#263238;--muted:#64748b;--primary:#2563eb;--ok:#16a34a;--bad:#dc2626;--line:#dbe2ea}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","Segoe UI",sans-serif;background:linear-gradient(180deg,#eff6ff,#f8fafc);color:var(--text)}
+.wrap{max-width:980px;margin:auto;padding:18px}.hero,.card{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 8px 22px rgba(15,23,42,.08);margin-top:16px}.hero{text-align:center}.hero h1{margin:0;font-size:clamp(26px,5vw,42px)}.hero p,.small{color:var(--muted);line-height:1.7}.modebox{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.modebox div{border:1px solid var(--line);border-radius:18px;padding:14px;background:#f8fafc}.modebox b{display:block;color:var(--primary);font-size:20px;margin-bottom:6px}.btn{border:0;border-radius:16px;padding:15px 18px;font-size:17px;font-weight:900;cursor:pointer;background:var(--primary);color:#fff}.btn.secondary{background:#e5e7eb;color:#111827}.top{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.badge{padding:8px 12px;border-radius:999px;background:#eef2ff;color:#3730a3;font-weight:800}.progress{height:12px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin:16px 0}.bar{height:100%;width:0;background:var(--primary);transition:.3s}.prompt{font-size:20px;font-weight:900;line-height:1.6;margin:10px 0 6px}.hint{font-size:14px;color:var(--muted)}
+.timeline{display:flex;align-items:end;gap:7px;overflow-x:auto;padding:22px 4px 10px}.day{min-width:108px;text-align:center}.dot{width:62px;height:62px;border-radius:50%;border:4px solid #111;margin:auto;display:flex;align-items:center;justify-content:center;font-weight:1000;font-size:22px;background:#f1f5f9}.pill{background:#dbeafe}.sex{background:#fecaca}.miss{background:#f3f4f6;color:#94a3b8;border-style:dashed}.time{font-size:15px;font-weight:900;margin-top:8px}.revealText{display:none;color:#475569;font-size:14px;margin-top:4px;line-height:1.35}.answered .revealText{display:block}.connector{height:4px;background:#111;min-width:34px;margin-bottom:47px}.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.choices button{border:0;border-radius:18px;padding:18px;font-size:20px;font-weight:1000;cursor:pointer;background:#eaf2ff;color:#1e3a8a}.choices button.correct{background:#dcfce7;color:#166534}.choices button.wrong{background:#fee2e2;color:#991b1b}.feedback{display:none;margin-top:14px;padding:16px;border-radius:16px;line-height:1.7}.feedback.ok{display:block;background:#ecfdf5;border:1px solid #bbf7d0}.feedback.bad{display:block;background:#fff7ed;border:1px solid #fed7aa}.nav{display:flex;justify-content:space-between;gap:10px;margin-top:16px}.hidden{display:none}.score{font-size:38px;font-weight:1000;color:var(--primary)}.review{display:grid;gap:10px}.review .item{border:1px solid var(--line);border-radius:16px;padding:13px}.legend{display:flex;gap:12px;flex-wrap:wrap;color:#475569;font-size:14px;margin-top:10px}.legend span{background:#f8fafc;border:1px solid var(--line);border-radius:999px;padding:7px 10px}@media(max-width:700px){.modebox{grid-template-columns:1fr}.choices{grid-template-columns:1fr}.wrap{padding:12px}.hero,.card{border-radius:18px;padding:16px}.dot{width:56px;height:56px}
+  /* 方法一：讓時間軸內容刻意超出手機螢幕，最後一個節點只露出一部分，提示使用者可以左右滑動 */
+  .timeline{padding-right:0;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+  .day{min-width:128px;scroll-snap-align:start}
+  .connector{min-width:48px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section class="hero" id="start">
+  <h1>On-demand PrEP 情境判斷小遊戲</h1>
+  <p>這版改成「少文字、多情境」：作答前只看時間軸、圖示與時間，不先給完整文字敘述。</p>
+  <div class="modebox">
+    <div><b>① 看時間軸</b>不顯示「正確規則文字」提醒</div>
+    <div><b>② 先判斷</b>用圖像與時間判斷是否符合 2-1-1</div>
+    <div><b>③ 答後才揭露</b>作答後才顯示文字說明與錯誤點</div>
+  </div>
+  <button class="btn" style="margin-top:22px" onclick="startGame()">開始挑戰</button>
+  <p class="small">教學用途：實際用藥請依醫療人員指示。</p>
+</section>
+
+<section class="card hidden" id="game">
+  <div class="top"><span class="badge" id="round">第 1 題</span><span class="badge" id="scoreBadge">得分 0</span></div>
+  <div class="progress"><div class="bar" id="bar"></div></div>
+  <div class="prompt">只看下方時間軸，這樣吃 on-demand PrEP 是否正確？</div>
+  <div class="hint">💊2 / 💊1 代表服藥顆數；♥ 代表性行為；灰色虛線代表未服藥或取消。</div>
+  <div class="timeline" id="timeline"></div>
+  <div class="choices" id="choices"></div>
+  <div class="feedback" id="feedback"></div>
+  <div class="nav"><button class="btn secondary" onclick="restart()">重新開始</button><button class="btn hidden" id="nextBtn" onclick="nextQuestion()">下一題</button></div>
+</section>
+
+<section class="card hidden" id="result">
+  <h2>完成！</h2>
+  <div class="score" id="finalScore"></div>
+  <p id="finalMsg"></p>
+  <div class="review" id="review"></div>
+  <button class="btn" style="margin-top:16px" onclick="restart()">再玩一次</button>
+</section>
+</div>
+<script>
+const questions=[
+ {correct:true, explain:'正確：2 顆在性行為前 2–24 小時內；之後 24 小時與 48 小時各 1 顆。', events:[['六 16:00','💊2','pill','服藥 2 顆'],['六 22:00','♥','sex','性行為'],['日 16:00','💊1','pill','服藥 1 顆'],['一 16:00','💊1','pill','服藥 1 顆']]},
+ {correct:false, explain:'不正確：第一次 2 顆只提前 1 小時，未達性行為前 2–24 小時。', events:[['五 22:00','💊2','pill','服藥 2 顆'],['五 23:00','♥','sex','性行為'],['六 22:00','💊1','pill','服藥 1 顆'],['日 22:00','💊1','pill','服藥 1 顆']]},
+ {correct:false, explain:'不正確：少了第一次服藥後 48 小時的第 2 次每日 1 顆。', events:[['六 12:00','💊2','pill','服藥 2 顆'],['六 21:00','♥','sex','性行為'],['日 12:00','💊1','pill','服藥 1 顆'],['一 12:00','—','miss','未服藥']]},
+ {correct:true, explain:'正確：連續性行為時每日 1 顆持續，最後一次性行為後仍完成 2 次每日 1 顆。', events:[['六 08:00','💊2','pill','服藥 2 顆'],['六 22:00','♥','sex','性行為'],['日 08:00','💊1','pill','服藥 1 顆'],['日 22:00','♥','sex','性行為'],['一 08:00','💊1','pill','服藥 1 顆'],['二 08:00','💊1','pill','服藥 1 顆']]},
+ {correct:false, explain:'不正確：最後一次性行為在週日，週一只是第 1 次每日 1 顆，週二還需要再吃 1 顆。', events:[['六 08:00','💊2','pill','服藥 2 顆'],['六 22:00','♥','sex','性行為'],['日 08:00','💊1','pill','服藥 1 顆'],['日 22:00','♥','sex','性行為'],['一 08:00','💊1','pill','服藥 1 顆'],['二 08:00','—','miss','未服藥']]},
+ {correct:true, explain:'正確：預計性行為取消且後續沒有暴露，重點是沒有發生暴露；後續是否續服可依衛教指示。', events:[['六 15:00','💊2','pill','服藥 2 顆'],['六 22:00','—','miss','性行為取消'],['日','—','miss','無性行為']]},
+ {correct:false, explain:'不正確：性行為後才開始吃，不能算正確的 on-demand PrEP。', events:[['六 22:00','♥','sex','性行為'],['日 08:00','💊2','pill','才服藥 2 顆'],['一 08:00','💊1','pill','服藥 1 顆'],['二 08:00','💊1','pill','服藥 1 顆']]},
+ {correct:false, explain:'不正確：連續風險期間應每日 1 顆；週日漏吃，服藥方式不符合建議。', events:[['六 16:00','💊2','pill','服藥 2 顆'],['六 22:00','♥','sex','性行為'],['日 22:00','♥','sex','性行為但當天漏吃'],['一 16:00','💊1','pill','服藥 1 顆']]}
+];
+let order=[],idx=0,score=0,answered=false,log=[];
+function shuffle(a){return a.map(x=>[Math.random(),x]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);}
+function startGame(){order=shuffle([...Array(questions.length).keys()]);idx=0;score=0;log=[];document.getElementById('start').classList.add('hidden');document.getElementById('result').classList.add('hidden');document.getElementById('game').classList.remove('hidden');render();}
+function render(){answered=false;let q=questions[order[idx]];document.getElementById('round').textContent=`第 ${idx+1} / ${questions.length} 題`;document.getElementById('scoreBadge').textContent=`得分 ${score}`;document.getElementById('bar').style.width=`${idx/questions.length*100}%`;let tl=document.getElementById('timeline');tl.classList.remove('answered');tl.innerHTML=q.events.map((e,i)=>`<div class="day"><div class="dot ${e[2]}">${e[1]}</div><div class="time">${e[0]}</div><div class="revealText">${e[3]}</div></div>${i<q.events.length-1?'<div class="connector"></div>':''}`).join('');
+// 每一題都把橫向時間軸重置到最左側，避免上一題滑動位置延續到下一題
+requestAnimationFrame(()=>{tl.scrollLeft=0;});
+document.getElementById('choices').innerHTML='<button onclick="answer(true)">✅ 正確</button><button onclick="answer(false)">❌ 不正確</button>';document.getElementById('feedback').className='feedback';document.getElementById('feedback').innerHTML='';document.getElementById('nextBtn').classList.add('hidden');}
+function answer(choice){if(answered)return;answered=true;let q=questions[order[idx]];let ok=choice===q.correct;if(ok)score++;log.push({ok,explain:q.explain});document.getElementById('timeline').classList.add('answered');[...document.querySelectorAll('.choices button')].forEach(b=>{let val=b.textContent.includes('正確')&&!b.textContent.includes('不正確');if(val===q.correct)b.classList.add('correct');else if(val===choice)b.classList.add('wrong');});let f=document.getElementById('feedback');f.className='feedback '+(ok?'ok':'bad');f.innerHTML=`<b>${ok?'答對了！':'再想一下。'}</b><br>${q.explain}<div class="legend"><span>事前：2–24 小時內 2 顆</span><span>後續：每 24 小時 1 顆</span><span>連續性行為：吃到最後一次後再完成 2 次</span></div>`;document.getElementById('scoreBadge').textContent=`得分 ${score}`;document.getElementById('nextBtn').classList.remove('hidden');}
+function nextQuestion(){idx++;idx>=questions.length?showResult():render();}
+function showResult(){document.getElementById('game').classList.add('hidden');document.getElementById('result').classList.remove('hidden');document.getElementById('finalScore').textContent=`${score} / ${questions.length} 分`;let pct=score/questions.length;document.getElementById('finalMsg').textContent=pct>=.9?'很好：在沒有大量文字提示下也能判斷。':pct>=.7?'不錯：建議再練習「事前時間」與「最後性行為後 2 次」兩類題。':'建議再玩一次，先不要看文字說明，只用時間軸判斷。';document.getElementById('review').innerHTML=log.map((x,i)=>`<div class="item"><b>第 ${i+1} 題：${x.ok?'✅':'❌'}</b><br><span class="small">${x.explain}</span></div>`).join('');}
+function restart(){document.getElementById('game').classList.add('hidden');document.getElementById('result').classList.add('hidden');document.getElementById('start').classList.remove('hidden');}
+</script>
+</body>
+</html>
