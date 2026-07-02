@@ -494,7 +494,7 @@ function renderEnd(){
 }
 
 let lastRecord=null;
-function uploadRecord(btn, rec, auto){
+async function uploadRecord(btn, rec, auto){
   const record = rec || lastRecord || attempts[attempts.length-1];
   lastRecord = record;
   const status=document.getElementById("status");
@@ -503,18 +503,37 @@ function uploadRecord(btn, rec, auto){
   }
   status.className="status pending"; status.textContent="上傳中…";
   if(btn) btn.disabled=true;
-  fetch(SHEET_WEBAPP_URL,{
-    method:"POST",
-    mode:"no-cors",
-    headers:{"Content-Type":"text/plain;charset=utf-8"},
-    body:JSON.stringify(record),
-  }).then(()=>{
-    status.className="status ok"; status.textContent="✔ 已上傳到 Google Sheet";
-    if(btn) btn.textContent="✔ 已上傳";
-  }).catch(()=>{
-    status.className="status err"; status.textContent="✘ 上傳失敗，請改用 CSV 下載或檢查網路／網址設定。";
-    if(btn) btn.disabled=false;
-  });
+
+  // 用表單編碼送出（簡單請求、不觸發 CORS 預檢，後端以 e.parameter.data 接收）
+  const body=new URLSearchParams({data:JSON.stringify(record)});
+
+  try{
+    // 先嘗試「可讀回應」的方式，才能看到後端真正的結果
+    const res=await fetch(SHEET_WEBAPP_URL,{method:"POST",body:body});
+    const text=await res.text();
+    let ok=false, msg="";
+    try{ const j=JSON.parse(text); ok=!!j.ok; msg=j.error||""; }catch(_){ ok=res.ok; }
+    if(ok){
+      status.className="status ok"; status.textContent="✔ 已成功寫入 Google Sheet";
+      if(btn) btn.textContent="✔ 已上傳";
+    }else{
+      status.className="status err";
+      status.textContent="✘ 伺服器回報失敗："+(msg||("HTTP "+res.status))+"　請改用 CSV 下載。";
+      if(btn) btn.disabled=false;
+    }
+  }catch(err){
+    // 讀不到回應（多半是 CORS 擋讀取，但資料通常已送出）→ 用 no-cors 盲送保底
+    try{
+      await fetch(SHEET_WEBAPP_URL,{method:"POST",mode:"no-cors",body:body});
+      status.className="status pending";
+      status.textContent="⚠ 已送出，但無法確認結果，請至 Google Sheet 核對是否新增一列（或按下方 CSV 備份）。";
+      if(btn) btn.textContent="已送出（請核對）";
+    }catch(e2){
+      status.className="status err";
+      status.textContent="✘ 上傳失敗（無法連線）："+String(e2)+"　請檢查網址／網路，並改用 CSV 下載。";
+      if(btn) btn.disabled=false;
+    }
+  }
 }
 
 function downloadCSV(){
