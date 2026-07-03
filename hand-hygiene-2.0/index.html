@@ -32,11 +32,12 @@
   .progress span.wrong{background:var(--red);}
   .progress span.now{background:var(--amber);}
 
-  .hud{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-weight:900;font-size:14px;}
+  .hud{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-weight:900;font-size:14px;gap:8px;flex-wrap:wrap;}
   .hud .pts{color:var(--teal-dark);font-size:18px;}
-  .hud .lvltag{font-size:12px;letter-spacing:.15em;padding:3px 10px;border-radius:99px;background:var(--ink);color:#fff;}
+  .hud .lvltag{font-size:12px;letter-spacing:.1em;padding:3px 10px;border-radius:99px;background:var(--ink);color:#fff;}
   .hud .lvltag.adv{background:var(--red);}
   .hud .lvltag.mix{background:var(--amber);color:var(--ink);}
+  .hud .lvltag.gen{background:var(--teal);}
   .hud .streak{color:var(--amber);}
   .hud .streak.off{color:#B9CCC8;}
 
@@ -59,6 +60,7 @@
   .opts{display:flex;flex-direction:column;gap:9px;margin-top:18px;}
   .opt{--c:var(--ink);position:relative;border:none;cursor:pointer;text-align:left;font:inherit;font-size:15px;font-weight:700;letter-spacing:.05em;color:#fff;background:var(--c);padding:12px 34px 12px 18px;clip-path:polygon(0 0, calc(100% - 20px) 0, 100% 50%, calc(100% - 20px) 100%, 0 100%);transition:transform .12s, opacity .2s, background .2s;}
   .opt.none{--c:var(--slate);}
+  .opt.yes{--c:var(--teal);}
   .opt:hover:not(:disabled){transform:translateX(6px);}
   .opt:focus-visible{outline:3px solid var(--amber);outline-offset:2px;}
   .opt:disabled{cursor:default;}
@@ -84,7 +86,6 @@
   .zone{border:2px dashed var(--teal);border-radius:20px;padding:16px 18px;margin:16px 0;font-size:14px;line-height:1.9;background:rgba(255,255,255,.6);}
   .zone strong{color:var(--teal-dark);}
 
-  /* 身分輸入 */
   .idbox{margin:16px 0;}
   .idbox label{display:block;font-size:13px;font-weight:800;color:var(--teal-dark);margin:0 0 5px 2px;}
   .idbox input{width:100%;padding:12px 14px;border:2px solid var(--line);border-radius:12px;font:inherit;font-size:15px;margin-bottom:12px;background:#fff;color:var(--ink);}
@@ -92,13 +93,16 @@
   .idwarn{color:var(--red);font-size:13px;font-weight:700;margin:-4px 0 10px 2px;display:none;}
   .idwarn.show{display:block;}
 
-  /* 難度選擇卡 */
   .levels{display:flex;flex-direction:column;gap:12px;margin:8px 0 4px;}
   .lvl{border:2px solid var(--line);border-radius:16px;padding:16px 18px;cursor:pointer;background:#fff;text-align:left;font:inherit;transition:transform .12s, border-color .2s;}
   .lvl:hover{transform:translateY(-2px);}
   .lvl:focus-visible{outline:3px solid var(--amber);outline-offset:2px;}
   .lvl .lname{font-size:18px;font-weight:900;display:flex;align-items:center;gap:8px;}
   .lvl .ldesc{font-size:13.5px;color:var(--slate);margin-top:5px;line-height:1.7;}
+  .lvl.aud1{border-color:var(--teal);}
+  .lvl.aud1 .lname{color:var(--teal-dark);}
+  .lvl.aud2{border-color:var(--ink);}
+  .lvl.aud2 .lname{color:var(--ink);}
   .lvl.basic{border-color:var(--teal);}
   .lvl.basic .lname{color:var(--teal-dark);}
   .lvl.adv{border-color:var(--red);}
@@ -117,7 +121,6 @@
   .review .ok{color:var(--teal-dark);}
   .review .ng{color:var(--red);}
 
-  /* 成績上傳 */
   .record{background:#F3F8F7;border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:16px;font-size:13px;line-height:1.9;}
   .record b{color:var(--teal-dark);}
   .btnrow{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
@@ -140,8 +143,8 @@
   <header>
     <div class="cross" aria-hidden="true"></div>
     <div>
-      <h1>洗手五時機 · 情境判斷測驗</h1>
-      <small>HAND HYGIENE · 5 MOMENTS</small>
+      <h1>洗手時機 · 情境判斷測驗</h1>
+      <small>HAND HYGIENE QUIZ</small>
     </div>
   </header>
 
@@ -159,33 +162,31 @@
 </div>
 
 <script>
-/* ============================================================
-   設定區
-   ============================================================ */
-const TIME_LIMIT   = 20;                 // 每題秒數
-const BASE_POINTS  = 1000;               // 每題滿分
-const STREAK_BONUS = 100;                // 連答加成
-const ROUND        = 10;                 // 每局抽題數
-const QUIZ_VERSION = "v4.0 (2026-07)";   // 題庫版本（會寫入 Google Sheet）
-
-// ★ 貼上你的 Google Apps Script 網頁應用程式網址（見說明）。留空則只提供 CSV 下載。
-const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycby3QKO9InBVjxTD3mBOy_MYQbpc8itdsgboRfFwW5eZhLUm8_wBp_7jj5WV3kC-4DFFRg/exec";
+/* ============================================================ 設定區 ============================================================ */
+const TIME_LIMIT   = 20;
+const BASE_POINTS  = 1000;
+const STREAK_BONUS = 100;
+const ROUND        = 10;
+const QUIZ_VERSION = "v5.0 (2026-07)";
+// ★ 貼上 Google Apps Script 網頁應用程式網址（/exec 結尾）。留空則只提供 CSV 下載。
+const SHEET_WEBAPP_URL = "";
 /* ============================================================ */
 
-const OPTIONS = [
-  "① 接觸病人前",
-  "② 清潔／無菌技術前",
-  "③ 血液體液曝觸後",
-  "④ 接觸病人後",
-  "⑤ 接觸病人環境後",
-  "✋ 此情境暫不需執行手部衛生",
-];
-const SHORT = ["①","②","③","④","⑤","不需"];
-function shortLabel(i){return i===-1?"逾時":(SHORT[i]||"?");}
+// 醫療人員：五時機 + 不需（索引 0-5）
+const OPTIONS_MED = ["① 接觸病人前","② 清潔／無菌技術前","③ 血體液曝觸風險後","④ 接觸病人後","⑤ 接觸病人環境後","✋ 此情境暫不需執行手部衛生"];
+const SHORT_MED   = ["①","②","③","④","⑤","不需"];
+// 非醫療人員：二選一
+const OPTIONS_GEN = ["✅ 需要洗手","✋ 暫時不需要洗手"];
+const SHORT_GEN   = ["需洗","不需"];
 
-// lv: 1=基礎　2=進階
-const QUESTIONS = [
-  // ───── 基礎 lv1 ─────
+function optionsFor(aud){return aud==="gen"?OPTIONS_GEN:OPTIONS_MED;}
+function shortFor(aud,i){
+  if(i===-1) return "逾時";
+  return (aud==="gen"?SHORT_GEN:SHORT_MED)[i]||"?";
+}
+
+/* ---------- 醫療人員題庫（lv:1 基礎 / lv:2 進階） ---------- */
+const Q_MED = [
   {lv:1, tag:"病房 · 晨間護理", scene:"你走進 3 床病房，準備<b>為陳伯伯測量血壓與體溫</b>，手才剛放上血壓計壓脈帶。", q:"在碰到陳伯伯之前，這屬於哪個時機？", ans:0,
    why:"即將接觸病人皮膚或衣物之前，必須執行手部衛生（時機①），保護病人不被醫療人員手上的微生物移生。"},
   {lv:1, tag:"護理站 → 病房", scene:"你在護理站打完紀錄，接著要<b>進病房攙扶王先生下床走路</b>做復健活動。", q:"攙扶病人之前，屬於哪個時機？", ans:0,
@@ -213,7 +214,6 @@ const QUESTIONS = [
   {lv:1, tag:"病室整理", scene:"病人已由家屬陪同去做檢查。你進入空病室<b>更換床單、整理床旁桌與呼叫鈴</b>後離開。", q:"病人不在場，離開時屬於哪個時機？", ans:4,
    why:"即使病人不在現場，床單、床旁桌、呼叫鈴都屬於病人環境，接觸後離開仍為時機⑤。"},
 
-  // ───── 進階 lv2 ─────
   {lv:2, tag:"換藥車 · 傷口護理", scene:"你剛量完病人的生命徵象，接下來要<b>直接為同一位病人更換腹部傷口敷料</b>。", q:"從一般接觸轉換到傷口護理之間，需要哪個時機？", ans:1,
    why:"即使是同一位病人，從「一般接觸」轉為「清潔／無菌操作」之間仍須執行時機②，避免把病人自身其他部位的菌帶進傷口。"},
   {lv:2, tag:"病人回床 · 測血糖", scene:"病人做完檢查回到病房，你先<b>整理好凌亂的床單</b>，接著要<b>為他指尖採血測血糖</b>。", q:"在採血之前屬於哪個時機？", ans:1,
@@ -254,19 +254,55 @@ const QUESTIONS = [
    why:"操作鼻胃管等侵入性管路屬於清潔／無菌操作，接觸管路之前為時機②，避免把病原經由管路帶入病人體內。"},
 ];
 
-const RANKS = [
+/* ---------- 非醫療人員題庫（日常洗手時機，二選一） ---------- */
+const Q_GEN = [
+  {tag:"用餐前", scene:"中午休息時間，你準備<b>坐下來用手拿三明治吃午餐</b>。", q:"吃東西之前需要洗手嗎？", ans:0,
+   why:"用餐、用手拿食物前一定要洗手，避免把手上的病菌吃進肚子。這是最基本、也最常被忽略的洗手時機。"},
+  {tag:"如廁後", scene:"你剛<b>上完廁所</b>，準備走出洗手間回到工作崗位。", q:"這個時候需要洗手嗎？", ans:0,
+   why:"如廁後務必用肥皂洗手，因為排泄物含有大量細菌，是腸胃道傳染病最主要的傳播途徑。"},
+  {tag:"咳嗽打噴嚏後", scene:"你<b>用手摀住口鼻打了個大噴嚏</b>，接著要繼續整理桌上的文件。", q:"打完噴嚏後需要洗手嗎？", ans:0,
+   why:"咳嗽、打噴嚏摀口鼻後手上會沾附呼吸道分泌物與病毒，應立即洗手，避免經由摸過的物品傳給他人。"},
+  {tag:"進入醫院", scene:"你<b>從外面走進醫院大廳</b>，一路上摸過門把、搭了電梯、按了樓層按鈕。", q:"接觸這些公共設施後、要進辦公區前需要洗手嗎？", ans:0,
+   why:"門把、電梯按鈕、扶手是眾人頻繁接觸的高風險表面。進入院內或準備摸臉、吃東西前，建議先用肥皂或酒精潔手。"},
+  {tag:"探病後", scene:"你<b>探視完住院的親友、握了手、幫忙整理床邊</b>後，準備離開病房。", q:"離開病房前需要洗手嗎？", ans:0,
+   why:"接觸病人與病房環境後，手上可能沾染病菌。離開病房前洗手，能保護自己也避免把院內的病菌帶出去。"},
+  {tag:"處理垃圾後", scene:"你<b>幫忙清理並綑綁辦公室的垃圾袋</b>後，準備回座位。", q:"處理完垃圾需要洗手嗎？", ans:0,
+   why:"垃圾常帶有大量細菌與污染物，處理後應立即洗手，尤其在接觸食物或臉部之前。"},
+  {tag:"備餐前", scene:"你在茶水間<b>準備幫大家分裝、遞送點心</b>，即將用手接觸食物。", q:"處理食物之前需要洗手嗎？", ans:0,
+   why:"接觸即食食物前必須洗手，避免把手上的病菌污染食物、造成群聚性腸胃炎。"},
+  {tag:"摸過動物後", scene:"你在路上<b>摸了摸一隻可愛的浪貓</b>，接著要進辦公室。", q:"接觸動物後需要洗手嗎？", ans:0,
+   why:"動物毛髮與皮膚可能帶有細菌或寄生蟲，接觸後應洗手，特別是在進食或摸臉之前。"},
+  {tag:"戴口罩", scene:"你要<b>拿出一個乾淨的口罩戴上</b>，手剛從口袋拿出口罩。", q:"戴口罩之前需要洗手嗎？", ans:0,
+   why:"戴口罩前先洗手，才不會把手上的病菌帶到口罩內側與臉部；脫口罩後同樣要洗手。"},
+  // 以下為「暫不需要」的判斷題（避免過度、建立正確觀念）
+  {tag:"純走動", scene:"你<b>從自己的座位走到隔壁同事桌邊討論事情</b>，沒有碰到公共物品，講完就回座位繼續打電腦。", q:"這個情況需要立刻洗手嗎？", ans:1,
+   why:"單純在自己的工作區走動、未接觸公共污染源，也不涉及進食或觸碰口鼻眼，此時不需要特別洗手。重點是「有沒有接觸到可能的污染源」。"},
+  {tag:"剛潔手後", scene:"你<b>剛用酒精乾洗手完、雙手已清潔</b>，馬上要簽收一份自己桌上的文件。", q:"這個時候需要再洗一次手嗎？", ans:1,
+   why:"手部剛清潔、且沒有再接觸到污染源，短時間內做乾淨的事情不需重複洗手。過度頻繁洗手反而容易傷害皮膚。"},
+  {tag:"開會聆聽", scene:"你<b>戴著口罩安靜坐在會議室聽簡報</b>，全程沒有接觸他人或共用物品。", q:"這段期間需要洗手嗎？", ans:1,
+   why:"沒有接觸公共物品或他人、也沒有要進食或觸碰口鼻眼，此時並不需要特別洗手。判斷關鍵仍是有無接觸污染源。"},
+];
+
+const RANKS_MED = [
   {p:0.9,  rank:"🏆 感控大師", note:"判斷幾乎全對！五時機與例外情境都掌握得很好，請帶動團隊。"},
   {p:0.75, rank:"⭐ 感控高手", note:"觀念相當紮實，複習一下答錯的情境就完美了。"},
   {p:0.6,  rank:"👍 及格邊緣", note:"大方向正確，特別留意轉換時機（②與③）與「不需洗手」的判斷。"},
   {p:0,    rank:"📖 需要再加油", note:"建議重新研讀五時機圖示，掌握「以病人區進出」為判斷核心的觀念。"},
 ];
+const RANKS_GEN = [
+  {p:0.9,  rank:"🏆 洗手達人", note:"太棒了！你完全掌握了什麼時候該洗手，是同仁的好榜樣。"},
+  {p:0.75, rank:"⭐ 衛生高手", note:"觀念很好，再留意幾個容易疏忽的時機就滿分了。"},
+  {p:0.6,  rank:"👍 及格過關", note:"基本觀念正確，記得掌握「用餐前、如廁後、接觸公共物品後」等關鍵時刻。"},
+  {p:0,    rank:"📖 再加強一下", note:"建議記住口訣：吃東西前、如廁後、擤鼻涕咳嗽後、接觸公共物品後都要洗手。"},
+];
 
 const LEVEL_META = {1:{label:"基礎",cls:""},2:{label:"進階",cls:"adv"},0:{label:"綜合",cls:"mix"}};
 
-let order=[], idx=0, correctCount=0, points=0, streak=0, results=[], gains=[], picks=[], curLevel=1;
+let bank=[], order=[], idx=0, correctCount=0, points=0, streak=0, results=[], gains=[], picks=[];
+let curAudience="med", curLevel=1;
 let timerId=null, deadline=0, answered=false, quizStartMs=0;
 let student={name:"", id:""};
-let attempts=[];       // 本次開啟期間累積的所有成績（供 CSV 匯出）
+let attempts=[];
 
 const stage=document.getElementById("stage");
 const progress=document.getElementById("progress");
@@ -277,13 +313,11 @@ const timernum=document.getElementById("timernum");
 const timerfill=document.getElementById("timerbarfill");
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-function poolOf(level){return [...QUESTIONS.keys()].filter(i=>level===0||QUESTIONS[i].lv===level);}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
-/* ---------- 初始畫面：身分輸入 + 難度選擇 ---------- */
+/* ---------- 畫面1：身分輸入 + 選族群 ---------- */
 function renderStart(){
   progress.hidden=true; hud.hidden=true; timerwrap.hidden=true;
-  const nBasic=poolOf(1).length, nAdv=poolOf(2).length, nAll=QUESTIONS.length;
   stage.innerHTML=`
     <span class="tag">學員登入</span>
     <div class="idbox">
@@ -293,46 +327,78 @@ function renderStart(){
       <input id="inId" type="text" placeholder="請輸入員工號或身分證字號" value="${esc(student.id)}" autocomplete="off">
       <div class="idwarn" id="idWarn">請先填寫姓名與員工號／身分證字號，才能開始測驗。</div>
     </div>
-    <span class="tag">選擇難度</span>
+    <span class="tag">選擇身份</span>
     <div class="levels">
-      <button class="lvl basic" onclick="tryStart(1)">
-        <div class="lname">🟢 基礎<span class="count">${Math.min(ROUND,nBasic)}／${nBasic} 題</span></div>
-        <div class="ldesc">動作與時機對應明確的常見情境，適合初學者建立五時機的基本反射。</div>
+      <button class="lvl aud2" onclick="tryAudience('med')">
+        <div class="lname">🏥 醫療人員</div>
+        <div class="ldesc">醫師、護理師、醫檢、呼吸治療等直接照護人員。測驗 WHO 洗手五時機，分基礎／進階／綜合三難度。</div>
       </button>
-      <button class="lvl adv" onclick="tryStart(2)">
-        <div class="lname">🔴 進階<span class="count">${Math.min(ROUND,nAdv)}／${nAdv} 題</span></div>
-        <div class="ldesc">轉換時機、手套迷思、隔離情境，以及「其實不需洗手」的陷阱題，考驗真正的判斷力。</div>
-      </button>
-      <button class="lvl mix" onclick="tryStart(0)">
-        <div class="lname">🟡 綜合<span class="count">${Math.min(ROUND,nAll)}／${nAll} 題</span></div>
-        <div class="ldesc">基礎與進階混合抽題，模擬臨床上難易交錯的真實情況。</div>
+      <button class="lvl aud1" onclick="tryAudience('gen')">
+        <div class="lname">👥 非醫療人員</div>
+        <div class="ldesc">行政、清潔、傳送、志工、餐飲等同仁。測驗日常生活中「什麼時候該洗手」的正確判斷。</div>
       </button>
     </div>
     <div class="zone">
-      <strong>五時機速覽（以「病人區」為界）：</strong><br>
-      進入病人區 → ① 接觸病人前　② 清潔／無菌技術前<br>
-      離開病人區 → ③ 血液體液曝觸後　④ 接觸病人後　⑤ 接觸病人環境後<br>
-      ✋ 每題都有「暫不需洗手」選項，先判斷是否<strong>接觸到病人或病人區</strong>。
+      作答為限時計分模式：每題 <strong>${TIME_LIMIT} 秒</strong>，答對越快分數越高，連續答對有加成。
     </div>
   `;
 }
 
-function tryStart(level){
+function tryAudience(aud){
   const n=document.getElementById("inName").value.trim();
   const d=document.getElementById("inId").value.trim();
   if(!n || !d){ document.getElementById("idWarn").classList.add("show"); return; }
   student={name:n, id:d};
-  startGame(level);
+  if(aud==="med") renderMedLevels();
+  else startGame("gen", 0);
 }
 
-function startGame(level){
-  curLevel=level;
-  const pool=poolOf(level);
+/* ---------- 畫面2（僅醫療人員）：選難度 ---------- */
+function renderMedLevels(){
+  const nBasic=Q_MED.filter(q=>q.lv===1).length;
+  const nAdv=Q_MED.filter(q=>q.lv===2).length;
+  const nAll=Q_MED.length;
+  stage.innerHTML=`
+    <span class="tag">醫療人員 · 選擇難度</span>
+    <p class="scene">從該難度題庫隨機抽出至多 <b>${ROUND}</b> 題。</p>
+    <div class="levels">
+      <button class="lvl basic" onclick="startGame('med',1)">
+        <div class="lname">🟢 基礎<span class="count">${Math.min(ROUND,nBasic)}／${nBasic} 題</span></div>
+        <div class="ldesc">動作與時機對應明確的常見情境，適合建立五時機的基本反射。</div>
+      </button>
+      <button class="lvl adv" onclick="startGame('med',2)">
+        <div class="lname">🔴 進階<span class="count">${Math.min(ROUND,nAdv)}／${nAdv} 題</span></div>
+        <div class="ldesc">轉換時機、手套迷思、隔離情境與「其實不需洗手」的陷阱題。</div>
+      </button>
+      <button class="lvl mix" onclick="startGame('med',0)">
+        <div class="lname">🟡 綜合<span class="count">${Math.min(ROUND,nAll)}／${nAll} 題</span></div>
+        <div class="ldesc">基礎與進階混合抽題，模擬難易交錯的真實情況。</div>
+      </button>
+    </div>
+    <div class="zone">
+      進入病人區 → ① 接觸病人前　② 清潔／無菌技術前<br>
+      離開病人區 → ③ 血體液曝觸風險後　④ 接觸病人後　⑤ 接觸病人環境後<br>
+      ✋ 每題都有「暫不需洗手」選項。
+    </div>
+    <button class="backbtn" onclick="renderStart()">← 回上一步（改選身份）</button>
+  `;
+}
+
+function poolIndices(aud, level){
+  if(aud==="gen") return [...Q_GEN.keys()];
+  return [...Q_MED.keys()].filter(i=>level===0||Q_MED[i].lv===level);
+}
+
+function startGame(aud, level){
+  curAudience=aud; curLevel=level;
+  bank = aud==="gen" ? Q_GEN : Q_MED;
+  const pool=poolIndices(aud, level);
   order=shuffle(pool).slice(0,Math.min(ROUND,pool.length));
   idx=0;correctCount=0;points=0;streak=0;results=[];gains=[];picks=[];
   quizStartMs=Date.now();
-  const meta=LEVEL_META[level];
-  lvlTag.textContent=meta.label; lvlTag.className="lvltag "+meta.cls;
+  const tagText = aud==="gen" ? "非醫療" : LEVEL_META[level].label;
+  const tagCls  = aud==="gen" ? "gen" : LEVEL_META[level].cls;
+  lvlTag.textContent=tagText; lvlTag.className="lvltag "+tagCls;
   progress.hidden=false; hud.hidden=false;
   progress.innerHTML=order.map(()=>"<span></span>").join("");
   updateHud();
@@ -364,14 +430,17 @@ function paintTimer(ms){
 }
 
 function renderQ(){
-  const q=QUESTIONS[order[idx]];
+  const q=bank[order[idx]];
+  const opts=optionsFor(curAudience);
   [...progress.children].forEach((s,i)=>{s.className = i<idx ? (results[i]?"done":"wrong") : (i===idx?"now":"");});
+  const noneIdx = curAudience==="gen" ? 1 : 5;   // 灰色「不需」選項
+  const yesIdx  = curAudience==="gen" ? 0 : -1;   // 綠色「需要洗手」
   stage.innerHTML=`
     <span class="tag">情境 ${idx+1}／${order.length} · ${q.tag}</span>
     <p class="scene">${q.scene}</p>
     <p class="q">${q.q}</p>
     <div class="opts">
-      ${OPTIONS.map((m,i)=>`<button class="opt ${i===5?"none":""}" data-i="${i}" onclick="pick(${i})">${m}</button>`).join("")}
+      ${opts.map((m,i)=>`<button class="opt ${i===noneIdx?"none":""} ${i===yesIdx?"yes":""}" data-i="${i}" onclick="pick(${i})">${m}</button>`).join("")}
     </div>
     <div class="feedback" id="fb"></div>
     <button class="next" id="next" onclick="nextQ()">${idx===order.length-1?"看成績 →":"下一題 →"}</button>
@@ -391,7 +460,7 @@ function lockOptions(pickedIdx, ansIdx){
 function pick(i){
   if(answered) return;
   answered=true; clearInterval(timerId);
-  const q=QUESTIONS[order[idx]];
+  const q=bank[order[idx]];
   const good=i===q.ans;
   const msLeft=Math.max(0,deadline-Date.now());
   let gain=0;
@@ -402,22 +471,24 @@ function pick(i){
   }else{streak=0;}
   results[idx]=good; gains[idx]=gain; picks[idx]=i;
   updateHud(); lockOptions(i,q.ans);
+  const opts=optionsFor(curAudience);
   const fb=document.getElementById("fb");
   fb.className="feedback show "+(good?"good":"bad");
   fb.innerHTML=`<span class="verdict">${good
     ?`✔ 答對了！<span class="gain">+${gain} 分${streak>1?`（含連答 🔥×${streak}）`:""}</span>`
-    :"✘ 正確答案是「"+OPTIONS[q.ans]+"」"}</span>${q.why}`;
+    :"✘ 正確答案是「"+opts[q.ans]+"」"}</span>${q.why}`;
   document.getElementById("next").classList.add("show");
 }
 
 function timeUp(){
   answered=true;
-  const q=QUESTIONS[order[idx]];
+  const q=bank[order[idx]];
+  const opts=optionsFor(curAudience);
   streak=0; results[idx]=false; gains[idx]=0; picks[idx]=-1;
   updateHud(); lockOptions(-1,q.ans);
   const fb=document.getElementById("fb");
   fb.className="feedback show bad";
-  fb.innerHTML=`<span class="verdict">⏰ 時間到！正確答案是「${OPTIONS[q.ans]}」</span>${q.why}`;
+  fb.innerHTML=`<span class="verdict">⏰ 時間到！正確答案是「${opts[q.ans]}」</span>${q.why}`;
   document.getElementById("next").classList.add("show");
   [...progress.children][idx].className="wrong";
 }
@@ -428,13 +499,13 @@ function pad(n){return String(n).padStart(2,"0");}
 function fmtDateTime(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;}
 
 function buildRecord(){
-  const meta=LEVEL_META[curLevel];
   const elapsedSec=Math.round((Date.now()-quizStartMs)/1000);
-  // 答錯統計：列出每題答錯的情境（應選 vs 實選）
-  const wrongs=order.map((qi,i)=>({q:QUESTIONS[qi],ok:results[i],pick:picks[i]}))
+  const wrongs=order.map((qi,i)=>({q:bank[qi],ok:results[i],pick:picks[i]}))
                     .filter(x=>!x.ok)
-                    .map(x=>`${x.q.tag}(應${shortLabel(x.q.ans)}／選${shortLabel(x.pick)})`);
+                    .map(x=>`${x.q.tag}(應${shortFor(curAudience,x.q.ans)}／選${shortFor(curAudience,x.pick)})`);
   const wrongSummary = wrongs.length? wrongs.join("；") : "全部答對";
+  const audienceLabel = curAudience==="gen" ? "非醫療人員" : "醫療人員";
+  const difficulty = curAudience==="gen" ? "一般" : LEVEL_META[curLevel].label;
   return {
     "姓名": student.name,
     "員工號/身分證字號": student.id,
@@ -445,23 +516,25 @@ function buildRecord(){
     "作答時間": fmtDateTime(new Date()),
     "作答秒數": elapsedSec,
     "題庫版本": QUIZ_VERSION,
-    "難度": meta.label,
+    "難度": difficulty,
+    "身份": audienceLabel,
   };
 }
 
-const COLS=["姓名","員工號/身分證字號","分數","題數","答對題數","答錯統計","作答時間","作答秒數","題庫版本","難度"];
+const COLS=["姓名","員工號/身分證字號","分數","題數","答對題數","答錯統計","作答時間","作答秒數","題庫版本","難度","身份"];
 
 function renderEnd(){
   clearInterval(timerId); timerwrap.hidden=true;
   const ratio=correctCount/order.length;
-  const r=RANKS.find(x=>ratio>=x.p);
-  const meta=LEVEL_META[curLevel];
+  const ranks = curAudience==="gen" ? RANKS_GEN : RANKS_MED;
+  const r=ranks.find(x=>ratio>=x.p);
   const rec=buildRecord();
   attempts.push(rec);
-  const list=order.map((qi,i)=>({q:QUESTIONS[qi],ok:results[i],g:gains[i]}));
+  const opts=optionsFor(curAudience);
+  const list=order.map((qi,i)=>({q:bank[qi],ok:results[i],g:gains[i]}));
   const configured = SHEET_WEBAPP_URL && SHEET_WEBAPP_URL.indexOf("http")===0;
   stage.innerHTML=`
-    <span class="tag">測驗結果 · ${meta.label}難度</span>
+    <span class="tag">測驗結果 · ${rec["身份"]}${curAudience==="gen"?"":" · "+rec["難度"]}</span>
     <div class="score">
       <div class="n">${points}<small> 分</small></div>
       <div class="sub">${esc(rec["姓名"])}｜答對 ${correctCount}／${order.length} 題｜作答 ${rec["作答秒數"]} 秒</div>
@@ -469,11 +542,11 @@ function renderEnd(){
       <p style="margin-top:6px;font-size:14px;">${r.note}</p>
     </div>
     <ul class="review">
-      ${list.map(({q,ok,g})=>`<li class="${ok?"ok":"ng"}">${ok?"✔":"✘"} ${q.tag}｜正解：${OPTIONS[q.ans]}${ok?`｜+${g} 分`:""}</li>`).join("")}
+      ${list.map(({q,ok,g})=>`<li class="${ok?"ok":"ng"}">${ok?"✔":"✘"} ${q.tag}｜正解：${opts[q.ans]}${ok?`｜+${g} 分`:""}</li>`).join("")}
     </ul>
     <div class="record">
       <b>本次紀錄（將寫入 Google Sheet）</b><br>
-      姓名：${esc(rec["姓名"])}｜編號：${esc(rec["員工號/身分證字號"])}<br>
+      姓名：${esc(rec["姓名"])}｜編號：${esc(rec["員工號/身分證字號"])}｜身份：${rec["身份"]}<br>
       分數：${rec["分數"]}｜題數：${rec["題數"]}｜答對：${rec["答對題數"]}｜難度：${rec["難度"]}<br>
       作答時間：${rec["作答時間"]}（共 ${rec["作答秒數"]} 秒）｜版本：${rec["題庫版本"]}<br>
       答錯統計：${esc(rec["答錯統計"])}
@@ -485,11 +558,10 @@ function renderEnd(){
       <button class="ghost-btn" onclick="downloadCSV()">⬇ 下載本場所有成績 CSV（${attempts.length} 筆）</button>
     </div>
     <div class="status" id="status"></div>
-    <button class="big-btn" style="margin-top:16px" onclick="startGame(${curLevel})">再挑戰同難度</button>
+    <button class="big-btn" style="margin-top:16px" onclick="startGame('${curAudience}',${curLevel})">再挑戰一次</button>
     <button class="backbtn" onclick="renderStart()">← 換人／回選單</button>
   `;
   progress.hidden=true; hud.hidden=true;
-  // 自動上傳（若已設定）
   if(configured) uploadRecord(document.getElementById("uploadBtn"), rec, true);
 }
 
@@ -503,26 +575,25 @@ async function uploadRecord(btn, rec, auto){
   }
   status.className="status pending"; status.textContent="上傳中…";
   if(btn) btn.disabled=true;
-
-  // 用表單編碼送出（簡單請求、不觸發 CORS 預檢，後端以 e.parameter.data 接收）
   const body=new URLSearchParams({data:JSON.stringify(record)});
-
   try{
-    // 先嘗試「可讀回應」的方式，才能看到後端真正的結果
     const res=await fetch(SHEET_WEBAPP_URL,{method:"POST",body:body});
     const text=await res.text();
-    let ok=false, msg="";
-    try{ const j=JSON.parse(text); ok=!!j.ok; msg=j.error||""; }catch(_){ ok=res.ok; }
-    if(ok){
+    let parsed=null;
+    try{ parsed=JSON.parse(text); }catch(_){ parsed=null; }
+    if(parsed && parsed.ok===true){
       status.className="status ok"; status.textContent="✔ 已成功寫入 Google Sheet";
       if(btn) btn.textContent="✔ 已上傳";
+    }else if(parsed && parsed.ok===false){
+      status.className="status err";
+      status.textContent="✘ 伺服器回報失敗："+(parsed.error||"未知錯誤")+"　請改用 CSV 下載。";
+      if(btn) btn.disabled=false;
     }else{
       status.className="status err";
-      status.textContent="✘ 伺服器回報失敗："+(msg||("HTTP "+res.status))+"　請改用 CSV 下載。";
+      status.textContent="✘ 無法確認寫入。請確認：①部署權限為「任何人」②已重新部署新版本③已填 SPREADSHEET_ID。可先用 CSV 下載。";
       if(btn) btn.disabled=false;
     }
   }catch(err){
-    // 讀不到回應（多半是 CORS 擋讀取，但資料通常已送出）→ 用 no-cors 盲送保底
     try{
       await fetch(SHEET_WEBAPP_URL,{method:"POST",mode:"no-cors",body:body});
       status.className="status pending";
@@ -530,7 +601,7 @@ async function uploadRecord(btn, rec, auto){
       if(btn) btn.textContent="已送出（請核對）";
     }catch(e2){
       status.className="status err";
-      status.textContent="✘ 上傳失敗（無法連線）："+String(e2)+"　請檢查網址／網路，並改用 CSV 下載。";
+      status.textContent="✘ 上傳失敗（無法連線）："+String(e2)+"　請改用 CSV 下載。";
       if(btn) btn.disabled=false;
     }
   }
@@ -546,7 +617,7 @@ function downloadCSV(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
   a.href=url;
-  a.download=`洗手五時機成績_${fmtDateTime(new Date()).replace(/[: ]/g,"-")}.csv`;
+  a.download=`洗手時機成績_${fmtDateTime(new Date()).replace(/[: ]/g,"-")}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
