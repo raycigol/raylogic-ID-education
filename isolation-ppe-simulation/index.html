@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>隔離方式 × PPE 選擇模擬器</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;--card:#fff;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;
+      --accent:#2563eb;--good:#16a34a;--bad:#dc2626;--warn:#d97706;
+      --shadow:0 10px 28px rgba(15,23,42,.08);--radius:22px;
+    }
+    *{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",Roboto,Arial,sans-serif;background:linear-gradient(180deg,#eef4ff,#f8fafc 45%,#f6f7fb);color:var(--text)}
+    .wrap{max-width:980px;margin:0 auto;padding:22px 16px 60px}.hero{background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:var(--radius);padding:22px;margin-bottom:16px}
+    h1{margin:0 0 8px;font-size:clamp(26px,5vw,42px);letter-spacing:-.03em}.lead{margin:0;color:var(--muted);font-size:17px;line-height:1.6}.badge{display:inline-flex;gap:8px;align-items:center;font-weight:700;background:#dbeafe;color:#1d4ed8;border-radius:999px;padding:7px 12px;margin-bottom:12px}.grid{display:grid;gap:16px}.two{grid-template-columns:1.2fr .8fr}@media(max-width:760px){.two{grid-template-columns:1fr}.wrap{padding:14px 12px 48px}}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}.case-title{font-size:22px;font-weight:850;margin:0 0 8px}.scenario{font-size:17px;line-height:1.7;margin:0;color:#374151}.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.pill{font-size:14px;padding:6px 10px;border-radius:999px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb}.section-title{font-weight:850;margin:0 0 10px;font-size:18px}.options{display:grid;gap:9px}.iso-options{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:520px){.iso-options{grid-template-columns:1fr}}
+    button.choice{width:100%;border:2px solid var(--line);background:#fff;border-radius:16px;padding:13px 12px;text-align:left;font-size:16px;font-weight:720;color:#111827;cursor:pointer;transition:.15s;display:flex;gap:10px;align-items:center;min-height:54px}button.choice:hover{transform:translateY(-1px);border-color:#93c5fd}.choice.selected{border-color:var(--accent);background:#eff6ff}.choice.correct{border-color:var(--good);background:#ecfdf5}.choice.wrong{border-color:var(--bad);background:#fef2f2}.choice.locked{cursor:default}.icon{font-size:24px;line-height:1}.ppe{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}@media(max-width:520px){.ppe{grid-template-columns:1fr}}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.btn{border:0;border-radius:14px;padding:13px 16px;font-weight:850;font-size:16px;cursor:pointer}.primary{background:var(--accent);color:#fff}.secondary{background:#e5e7eb;color:#111827}.ghost{background:#fff;border:1px solid var(--line);color:#374151}.feedback{border-radius:18px;padding:14px;margin-top:14px;line-height:1.65;display:none}.feedback.good{display:block;background:#ecfdf5;border:1px solid #bbf7d0}.feedback.bad{display:block;background:#fff7ed;border:1px solid #fed7aa}.scorebox{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.scoreitem{background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center}.num{font-size:26px;font-weight:900}.small{font-size:13px;color:var(--muted)}.progress{height:12px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:16px}.bar{height:100%;width:0;background:linear-gradient(90deg,#60a5fa,#2563eb);transition:.25s}.teach{font-size:15px;line-height:1.65;color:#374151}.summary{display:none}.summary.show{display:block}.wronglist{display:grid;gap:10px;margin-top:12px}.wrongitem{border:1px solid var(--line);background:#f8fafc;border-radius:14px;padding:12px;line-height:1.55}.footer-note{font-size:13px;color:var(--muted);text-align:center;margin-top:18px}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div class="badge">🛡️ HTML互動教具</div>
+      <h1>隔離方式 × PPE 選擇模擬器</h1>
+      <p class="lead">每題依臨床情境選擇「隔離方式」與「PPE」。重點不是背疾病，而是把風險轉成現場行動。</p>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+    </section>
+
+    <section class="grid two">
+      <div class="card" id="gameCard">
+        <div class="small" id="counter">第 1 題</div>
+        <h2 class="case-title" id="caseTitle"></h2>
+        <p class="scenario" id="scenario"></p>
+        <div class="meta" id="meta"></div>
+
+        <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+        <p class="section-title">1. 請選擇隔離方式</p>
+        <div class="options iso-options" id="isoOptions"></div>
+
+        <p class="section-title" style="margin-top:18px">2. 請選擇進入病室前需要的 PPE</p>
+        <div class="ppe" id="ppeOptions"></div>
+
+        <div class="actions">
+          <button class="btn primary" id="submitBtn">送出答案</button>
+          <button class="btn secondary" id="nextBtn" style="display:none">下一題</button>
+          <button class="btn ghost" id="restartBtn">重新開始</button>
+        </div>
+        <div class="feedback" id="feedback"></div>
+      </div>
+
+      <aside class="card">
+        <p class="section-title">目前成績</p>
+        <div class="scorebox">
+          <div class="scoreitem"><div class="num" id="score">0</div><div class="small">得分</div></div>
+          <div class="scoreitem"><div class="num" id="done">0</div><div class="small">完成</div></div>
+          <div class="scoreitem"><div class="num" id="total">0</div><div class="small">總題數</div></div>
+        </div>
+        <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+        <p class="section-title">教學提示</p>
+        <div class="teach">
+          <b>空氣隔離：</b>N95以上口罩、單獨負壓隔離室。<br>
+          <b>飛沫隔離：</b>外科口罩為核心，視噴濺風險加眼部防護。<br>
+          <b>接觸隔離：</b>手套與隔離衣為核心，離開病室前脫除並手部衛生。<br>
+          <b>標準防護：</b>所有病人都適用，依可能接觸血液、體液、分泌物調整 PPE。
+        </div>
+      </aside>
+    </section>
+
+    <section class="card summary" id="summary">
+      <h2 style="margin-top:0">完成！</h2>
+      <p id="finalText" class="scenario"></p>
+      <div class="wronglist" id="wrongList"></div>
+      <div class="actions"><button class="btn primary" onclick="restart()">再玩一次</button></div>
+    </section>
+    <p class="footer-note">可直接上傳 GitHub Pages 或嵌入 Notion / LMS 使用。</p>
+  </main>
+
+<script>
+const isoChoices = [
+  {id:'standard', label:'標準防護', icon:'🧼'},
+  {id:'contact', label:'接觸隔離', icon:'🧤'},
+  {id:'droplet', label:'飛沫隔離', icon:'😷'},
+  {id:'airborne', label:'空氣隔離', icon:'🌬️'}
+];
+const ppeChoices = [
+  {id:'surgical', label:'外科口罩', icon:'😷'},
+  {id:'n95', label:'N95以上口罩', icon:'🥽'},
+  {id:'gloves', label:'手套', icon:'🧤'},
+  {id:'gown', label:'隔離衣', icon:'🥼'},
+  {id:'eye', label:'護目鏡/面罩', icon:'🛡️'},
+  {id:'negative', label:'單獨負壓隔離室', icon:'🏥'}
+];
+const cases = [
+  {title:'疑似麻疹', scenario:'急診病人發燒、咳嗽、結膜炎與全身皮疹，候診區有多位未接種疫苗的兒童。你要進入病室評估。', tags:['發燒＋皮疹','高度傳染','門急診'], iso:['airborne'], ppe:['n95','negative'], explain:'麻疹屬於需要空氣隔離的疾病；進入時應使用 N95以上口罩，並安排單獨負壓隔離室。'},
+  {title:'開放性肺結核', scenario:'住院病人痰液 AFB smear positive，仍咳嗽且尚未完成有效治療。你要進病室做評估。', tags:['AFB positive','咳嗽','住院'], iso:['airborne'], ppe:['n95','negative'], explain:'開放性肺結核需空氣隔離；重點是 N95以上口罩與負壓隔離室。'},
+  {title:'疑似流感群聚', scenario:'病房兩位病人與一位護理師出現發燒、喉嚨痛、肌肉痠痛。你要進入病室採檢。', tags:['發燒','呼吸道症狀','採檢'], iso:['droplet'], ppe:['surgical','gloves','eye'], explain:'流感以飛沫為主要防護概念；近距離採檢有噴濺風險，建議外科口罩、手套與眼部防護。'},
+  {title:'COVID-19插管前準備', scenario:'COVID-19病人呼吸衰竭，團隊準備進行插管。你是插管協助者。', tags:['氣溶膠產生處置','插管','高風險'], iso:['airborne','contact'], ppe:['n95','gloves','gown','eye','negative'], explain:'插管屬高風險氣溶膠產生處置；需提高呼吸防護，合併接觸與眼部防護，並盡可能在負壓環境。'},
+  {title:'水痘病人換藥', scenario:'成人病人全身多處水疱，疑似水痘，護理師需要進病室協助皮膚照護。', tags:['水疱','皮膚病灶','照護'], iso:['airborne','contact'], ppe:['n95','gloves','gown','negative'], explain:'水痘需空氣隔離，皮膚病灶照護也有接觸風險，因此合併接觸防護。'},
+  {title:'C. difficile腹瀉', scenario:'病人使用抗生素後出現水瀉，糞便毒素陽性。你要進病室評估腹瀉狀況。', tags:['腹瀉','C. difficile','腸胃道'], iso:['contact'], ppe:['gloves','gown'], explain:'C. difficile以接觸隔離為核心；進入病室需手套與隔離衣，並特別注意離開後手部衛生。'},
+  {title:'CRE帶菌者照護', scenario:'病人肛門篩檢 CRE 陽性，目前無發燒，但需協助翻身與更換尿布。', tags:['MDRO','翻身','更換尿布'], iso:['contact'], ppe:['gloves','gown'], explain:'MDRO帶菌且有密切接觸照護時，重點是接觸隔離、手套與隔離衣。'},
+  {title:'一般抽血', scenario:'病人無呼吸道症狀、無腹瀉，也沒有已知MDRO。你要進行例行抽血。', tags:['一般照護','抽血','無特殊症狀'], iso:['standard'], ppe:['gloves'], explain:'此情境以標準防護為主；抽血可能接觸血液，因此手套是必要PPE。'}
+];
+let idx=0, score=0, answered=false, selectedIso=new Set(), selectedPpe=new Set(), wrongs=[];
+const $=id=>document.getElementById(id);
+function sameSet(a,b){return a.size===b.length && b.every(x=>a.has(x));}
+function render(){answered=false;selectedIso=new Set();selectedPpe=new Set();$('summary').classList.remove('show');$('gameCard').style.display='block';const c=cases[idx];$('counter').textContent=`第 ${idx+1} 題 / ${cases.length}`;$('caseTitle').textContent=c.title;$('scenario').textContent=c.scenario;$('meta').innerHTML=c.tags.map(t=>`<span class="pill">${t}</span>`).join('');$('isoOptions').innerHTML=isoChoices.map(o=>`<button class="choice" data-type="iso" data-id="${o.id}"><span class="icon">${o.icon}</span>${o.label}</button>`).join('');$('ppeOptions').innerHTML=ppeChoices.map(o=>`<button class="choice" data-type="ppe" data-id="${o.id}"><span class="icon">${o.icon}</span>${o.label}</button>`).join('');document.querySelectorAll('.choice').forEach(btn=>btn.addEventListener('click',()=>toggle(btn)));$('submitBtn').style.display='inline-block';$('nextBtn').style.display='none';$('feedback').className='feedback';$('feedback').style.display='none';updateStats();}
+function toggle(btn){if(answered)return; const set=btn.dataset.type==='iso'?selectedIso:selectedPpe; const id=btn.dataset.id; if(set.has(id)){set.delete(id);btn.classList.remove('selected')}else{set.add(id);btn.classList.add('selected')}}
+function submit(){if(answered)return; const c=cases[idx]; if(selectedIso.size===0 || selectedPpe.size===0){$('feedback').className='feedback bad';$('feedback').style.display='block';$('feedback').innerHTML='請先選擇隔離方式與 PPE。'; return;} answered=true; const isoOK=sameSet(selectedIso,c.iso), ppeOK=sameSet(selectedPpe,c.ppe), ok=isoOK&&ppeOK; if(ok) score++; else wrongs.push({title:c.title, explain:c.explain, yourIso:[...selectedIso], yourPpe:[...selectedPpe]}); document.querySelectorAll('.choice').forEach(btn=>{btn.classList.add('locked'); const id=btn.dataset.id; const correct=(btn.dataset.type==='iso'?c.iso:c.ppe).includes(id); const picked=(btn.dataset.type==='iso'?selectedIso:selectedPpe).has(id); if(correct) btn.classList.add('correct'); if(picked&&!correct) btn.classList.add('wrong');}); $('feedback').className='feedback '+(ok?'good':'bad');$('feedback').style.display='block';$('feedback').innerHTML=`<b>${ok?'答對了！':'再想一下：'}</b><br>${c.explain}<br><span class="small">正確隔離：${c.iso.map(id=>isoChoices.find(o=>o.id===id).label).join('＋')}；正確PPE：${c.ppe.map(id=>ppeChoices.find(o=>o.id===id).label).join('＋')}</span>`; $('submitBtn').style.display='none';$('nextBtn').style.display='inline-block';updateStats();}
+function next(){ if(idx<cases.length-1){idx++;render();} else finish();}
+function updateStats(){ $('score').textContent=score; $('done').textContent=answered?idx+1:idx; $('total').textContent=cases.length; $('bar').style.width=`${((answered?idx+1:idx)/cases.length)*100}%`;}
+function finish(){ $('gameCard').style.display='none';$('summary').classList.add('show');$('bar').style.width='100%';const pct=Math.round(score/cases.length*100);$('finalText').innerHTML=`你的分數：<b>${score} / ${cases.length}</b>（${pct}%）。${pct>=80?'已能掌握多數臨床情境。':'建議再複習空氣、飛沫、接觸隔離的核心差異。'}`;$('wrongList').innerHTML=wrongs.length?'<h3>錯題回顧</h3>'+wrongs.map(w=>`<div class="wrongitem"><b>${w.title}</b><br>${w.explain}</div>`).join(''):'<div class="wrongitem">全部答對，太好了！</div>';}
+function restart(){idx=0;score=0;wrongs=[];render();}
+$('submitBtn').addEventListener('click',submit);$('nextBtn').addEventListener('click',next);$('restartBtn').addEventListener('click',restart);render();
+</script>
+</body>
+</html>
