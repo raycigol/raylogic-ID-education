@@ -1,0 +1,27 @@
+{
+  "name": "ACLS 急救事件紀錄器",
+  "short_name": "ACLS 紀錄器",
+  "description": "離線可用的 ACLS／CPR 急救事件即時記錄器，含 2 分鐘循環與 Epinephrine 計時。",
+  "lang": "zh-Hant",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
