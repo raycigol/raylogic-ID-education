@@ -552,10 +552,12 @@
         <button id="epiBtn" class="btn btn-epi" disabled>Epinephrine 1 mg</button>
         <button id="airwayStartBtn" class="btn btn-airway" disabled>插管開始</button>
         <button id="airwayBtn" class="btn btn-airway" disabled>插管完成</button>
+        <button id="rsiBtn" class="btn btn-drug" disabled>RSI 用藥</button>
         <button id="roscBtn" class="btn btn-rosc" disabled>ROSC</button>
         <button id="shockBtn" class="btn btn-shock" disabled>電擊</button>
         <button id="drugBtn" class="btn btn-drug" disabled>其他藥物</button>
         <button id="procedureBtn" class="btn btn-note" disabled>處置／管路</button>
+        <button id="vitalBtn" class="btn btn-note" disabled>生命徵象</button>
         <button id="noteBtn" class="btn btn-note" disabled>新增註記</button>
         <button id="resumeBtn" class="btn btn-resume" disabled>再次開始 CPR</button>
       </div>
@@ -638,7 +640,16 @@
     rosc: "ROSC",
     shock: "電擊",
     medication: "其他藥物",
+    rsi: "RSI 用藥",
+    vital_sign: "生命徵象",
     note: "註記"
+  };
+
+  // RSI 常規用藥與本院濃度（護理師習慣以 mL 記錄，系統後台換算為 mg）
+  const RSI_DRUGS = {
+    lidocaine:  { label: "Lidocaine",  mgPerMl: 20 },
+    ketamine:   { label: "Ketamine",   mgPerMl: 50 },
+    rocuronium: { label: "Rocuronium", mgPerMl: 10 }
   };
 
   function nowISO(){ return new Date().toISOString(); }
@@ -711,6 +722,99 @@
   function getCurrentCprSegment(referenceTime = new Date()){
     const segments = getCprSegments(referenceTime);
     return segments.length ? segments[segments.length - 1] : null;
+  }
+
+  // 統一計算急救摘要統計，供 CSV／PDF 匯出共用，確保兩邊數字一致。
+  function computeSummary(referenceTime = new Date()){
+    const evs = [...state.events].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+    const base = state.eventStart || state.cprStart || (evs[0] ? evs[0].timestamp : null);
+    const byType = (t)=>evs.filter(e=>e.type===t);
+    const delay = (target)=>(base && target) ? secondsBetween(base, target) : null;
+
+    // Epinephrine：次數、首劑時間、各劑間隔與平均間隔
+    const epis = byType("epinephrine");
+    const epiIntervals = [];
+    for(let i=1;i<epis.length;i++){
+      epiIntervals.push(secondsBetween(epis[i-1].timestamp, epis[i].timestamp));
+    }
+    const epiAvg = epiIntervals.length
+      ? Math.round(epiIntervals.reduce((a,b)=>a+b,0)/epiIntervals.length)
+      : null;
+
+    // 電擊、其他藥物明細
+    const shocks = byType("shock").map(e=>({ time:e.timestamp, detail:e.detail||"" }));
+    const meds = byType("medication").map(e=>({ time:e.timestamp, detail:e.detail||"" }));
+
+    // 關鍵延遲：事件開始 → 首次 CPR／首劑 Epinephrine／首次電擊
+    const firstCpr = evs.find(e=>e.type==="cpr_start" || e.type==="cpr_resume");
+    const firstShock = byType("shock")[0] || null;
+    const delays = {
+      toCpr: firstCpr ? delay(firstCpr.timestamp) : null,
+      toEpi: epis[0] ? delay(epis[0].timestamp) : null,
+      toShock: firstShock ? delay(firstShock.timestamp) : null
+    };
+
+    // 總急救時長 (downtime)：事件開始 → ROSC（或最後一筆事件）
+    const endMark = state.roscTime || (evs.length ? evs[evs.length-1].timestamp : null);
+    const downtime = (base && endMark) ? secondsBetween(base, endMark) : null;
+
+    // CPR 暫停分析：段與段之間的空檔（no-flow time）
+    const segments = getCprSegments(referenceTime);
+    const totalCpr = segments.reduce((s,seg)=>s+seg.duration,0);
+    let pauseCount = 0, totalPause = 0;
+    for(let i=1;i<segments.length;i++){
+      const gap = secondsBetween(segments[i-1].end, segments[i].start);
+      if(gap>0){ pauseCount++; totalPause += gap; }
+    }
+
+    // 各類事件計數
+    const counts = {};
+    evs.forEach(e=>{ counts[e.type] = (counts[e.type]||0)+1; });
+    const eventCounts = Object.keys(counts).map(t=>({
+      type:t, label:eventLabels[t]||t, count:counts[t]
+    }));
+
+    // 插管耗時：插管開始 → 插管完成
+    const intStart = byType("intubation_start")[0] || null;
+    const intDone = byType("intubation")[0] || null;
+    const intubation = {
+      start: intStart ? intStart.timestamp : null,
+      done: intDone ? intDone.timestamp : null,
+      duration: (intStart && intDone) ? secondsBetween(intStart.timestamp, intDone.timestamp) : null
+    };
+
+    return {
+      base,
+      epi: { count:epis.length, firstTime: epis[0]?epis[0].timestamp:null, intervals:epiIntervals, avgInterval:epiAvg },
+      shocks, shockCount:shocks.length,
+      meds,
+      delays,
+      downtime,
+      cpr: { totalSeconds:totalCpr, pauseCount, totalPause, segmentCount:segments.length },
+      eventCounts,
+      result: { rosc: !!state.roscTime, roscTime: state.roscTime || null },
+      intubation
+    };
+  }
+
+  // 摘要統計的兩欄 [項目, 數值] 列，CSV／PDF 共用。
+  function summaryStatRows(s){
+    const na = "—";
+    const dur = (x)=> x==null ? na : fmtDuration(x);
+    return [
+      ["急救結果", s.result.rosc ? `已 ROSC（${fmtDateTime(s.result.roscTime)}）` : "未達 ROSC"],
+      ["總急救時長 (downtime)", dur(s.downtime)],
+      ["累積 CPR 時間", dur(s.cpr.totalSeconds)],
+      ["CPR 暫停", s.cpr.pauseCount>0 ? `${s.cpr.pauseCount} 次，共 ${fmtDuration(s.cpr.totalPause)}` : "無暫停"],
+      ["事件開始 → 首次 CPR", dur(s.delays.toCpr)],
+      ["事件開始 → 首劑 Epinephrine", dur(s.delays.toEpi)],
+      ["事件開始 → 首次電擊", dur(s.delays.toShock)],
+      ["Epinephrine 給藥", s.epi.count>0 ? `${s.epi.count} 劑${s.epi.avgInterval!=null ? `，平均間隔 ${fmtDuration(s.epi.avgInterval)}` : ""}` : "未給藥"],
+      ["電擊", s.shockCount>0 ? `${s.shockCount} 次` : "未電擊"],
+      ["插管耗時", s.intubation.duration!=null
+        ? `${fmtDuration(s.intubation.duration)}（${fmtDateTime(s.intubation.start)} → ${fmtDateTime(s.intubation.done)}）`
+        : (s.intubation.start ? "僅記錄插管開始" : "未插管")]
+    ];
   }
 
   function save(){
@@ -836,7 +940,7 @@
     $("eventStartBtn").disabled = !!state.eventStart;
     $("startBtn").disabled = !state.eventStart || active;
     $("stopBtn").disabled = !state.eventStart || !active;
-    ["airwayStartBtn","airwayBtn","drugBtn","procedureBtn","noteBtn"].forEach(id => {
+    ["airwayStartBtn","airwayBtn","rsiBtn","drugBtn","procedureBtn","vitalBtn","noteBtn"].forEach(id => {
       $(id).disabled = !state.eventStart;
     });
     ["pulseBtn","epiBtn","roscBtn","shockBtn"].forEach(id => {
@@ -1006,6 +1110,7 @@
 
   function openModal(title, bodyHtml, saveHandler){
     $("modalSave").textContent = "儲存";
+    $("modalSave").style.display = "";
     $("modalTitle").textContent = title;
     $("modalBody").innerHTML = bodyHtml;
     modalSaveHandler = saveHandler;
@@ -1308,6 +1413,45 @@
     });
   });
 
+  $("rsiBtn").addEventListener("click", () => {
+    // 第一步：選藥（本院常規 Lidocaine／Ketamine／Rocuronium），此步驟不需「儲存」鍵
+    openModal("RSI 用藥", `
+      <div class="hint">選擇用藥（本院常規）</div>
+      <button type="button" class="btn btn-drug rsi-pick" data-rsi="lidocaine">Lidocaine</button>
+      <button type="button" class="btn btn-drug rsi-pick" data-rsi="ketamine">Ketamine</button>
+      <button type="button" class="btn btn-drug rsi-pick" data-rsi="rocuronium">Rocuronium</button>
+    `, null);
+    $("modalSave").style.display = "none";
+    $("modalBody").querySelectorAll(".rsi-pick").forEach(btn => {
+      btn.addEventListener("click", () => openRsiDose(btn.getAttribute("data-rsi")));
+    });
+  });
+
+  // 第二步：輸入 mL，儲存時依本院濃度換算 mg
+  function openRsiDose(key){
+    const drug = RSI_DRUGS[key];
+    if(!drug) return;
+    $("modalTitle").textContent = `RSI 用藥 · ${drug.label}`;
+    $("modalBody").innerHTML = `
+      <label>劑量 (mL)
+        <input id="rsiMl" inputmode="decimal" placeholder="例如：3">
+      </label>
+      <div class="hint">${drug.label} 1 mL = ${drug.mgPerMl} mg；儲存時自動換算為 mg。</div>
+    `;
+    $("modalSave").style.display = "";
+    $("modalSave").textContent = "儲存";
+    const input = $("rsiMl");
+    if(input) input.focus();
+    modalSaveHandler = () => {
+      const raw = $("rsiMl").value.trim().replace(",", ".");
+      const ml = parseFloat(raw);
+      if(!raw || isNaN(ml) || ml <= 0){ alert("請輸入正確的 mL 數值"); return; }
+      const mg = Math.round(ml * drug.mgPerMl * 100) / 100;
+      addEvent("rsi", `${drug.label} ${ml} mL（${mg} mg）`);
+      closeModal();
+    };
+  }
+
   $("procedureBtn").addEventListener("click", () => {
     openModal("記錄處置／管路", `
       <label>處置類型
@@ -1346,6 +1490,35 @@
       const during = state.active ? "CPR 進行中" : "未進行 CPR";
       const detail = [type, site, result, during, note].filter(Boolean).join("；");
       addEvent("procedure", detail);
+      closeModal();
+    });
+  });
+
+  $("vitalBtn").addEventListener("click", () => {
+    openModal("記錄生命徵象", `
+      <label>收縮壓 SBP (mmHg)
+        <input id="vitalSbp" inputmode="numeric" placeholder="例如：120">
+      </label>
+      <label>舒張壓 DBP (mmHg)
+        <input id="vitalDbp" inputmode="numeric" placeholder="例如：80">
+      </label>
+      <label>心跳 HR (/min)
+        <input id="vitalHr" inputmode="numeric" placeholder="例如：88">
+      </label>
+      <label>血氧 SpO₂ (%)
+        <input id="vitalSpo2" inputmode="numeric" placeholder="例如：98">
+      </label>
+    `, () => {
+      const sbp = $("vitalSbp").value.trim();
+      const dbp = $("vitalDbp").value.trim();
+      const hr = $("vitalHr").value.trim();
+      const spo2 = $("vitalSpo2").value.trim();
+      const parts = [];
+      if(sbp || dbp) parts.push(`BP ${sbp || "?"}/${dbp || "?"} mmHg`);
+      if(hr) parts.push(`HR ${hr} /min`);
+      if(spo2) parts.push(`SpO₂ ${spo2}%`);
+      if(!parts.length){ alert("請至少輸入一項生命徵象"); return; }
+      addEvent("vital_sign", parts.join("；"));
       closeModal();
     });
   });
@@ -1406,7 +1579,44 @@
 
   $("csvBtn").addEventListener("click", () => {
     if(!state.events.length){ alert("目前沒有可匯出的事件"); return; }
-    const rows = [["床位","病歷號","事件","日期時間","相對時間","內容"]];
+    const s = computeSummary(new Date());
+    const rows = [];
+
+    // 基本資料
+    rows.push(["床位", state.bed || ""]);
+    rows.push(["病歷號", state.mrn || ""]);
+    rows.push(["急救事件開始", state.eventStart ? fmtDateTime(state.eventStart) : ""]);
+    rows.push([]);
+
+    // 急救摘要統計
+    rows.push(["急救摘要"]);
+    rows.push(["項目","數值"]);
+    summaryStatRows(s).forEach(r => rows.push(r));
+    rows.push([]);
+
+    // 電擊明細
+    rows.push(["電擊明細"]);
+    rows.push(["次序","時間","能量／內容"]);
+    if(s.shocks.length){
+      s.shocks.forEach((sh,i)=>rows.push([String(i+1), fmtDateTime(sh.time), sh.detail]));
+    }else{
+      rows.push(["—","未電擊",""]);
+    }
+    rows.push([]);
+
+    // 其他藥物
+    rows.push(["其他藥物"]);
+    rows.push(["時間","內容"]);
+    if(s.meds.length){
+      s.meds.forEach(m=>rows.push([fmtDateTime(m.time), m.detail]));
+    }else{
+      rows.push(["未給藥",""]);
+    }
+    rows.push([]);
+
+    // 事件明細
+    rows.push(["事件明細"]);
+    rows.push(["床位","病歷號","事件","日期時間","相對時間","內容"]);
     state.events.forEach(ev => {
       rows.push([
         state.bed || "",
@@ -1446,17 +1656,38 @@
       `;
     }).join("");
 
-    const cprSegments = getCprSegments(new Date());
-    const cprSegmentRows = cprSegments.length
-      ? cprSegments.map(seg => `
-          <tr>
-            <td>第 ${seg.number} 段</td>
-            <td>${escapeHtml(fmtDateTime(seg.start))}</td>
-            <td>${seg.endType === "active" ? "進行中" : escapeHtml(fmtDateTime(seg.end))}</td>
-            <td>${escapeHtml(fmtDuration(seg.duration))}</td>
-          </tr>
-        `).join("")
-      : `<tr><td colspan="4">未進行 CPR</td></tr>`;
+    // 急救摘要統計與明細表（新增匯出項目）
+    const s = computeSummary(new Date());
+    const statTableRows = summaryStatRows(s)
+      .map(([k,v]) => `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(v)}</td></tr>`).join("");
+
+    const shockDetailBlock = s.shocks.length ? `
+      <h2>電擊明細</h2>
+      <table class="segment-table">
+        <thead><tr><th>次序</th><th>時間</th><th>能量／內容</th></tr></thead>
+        <tbody>${s.shocks.map((sh,i)=>`
+          <tr><td>第 ${i+1} 次</td><td>${escapeHtml(fmtDateTime(sh.time))}</td><td>${escapeHtml(sh.detail)}</td></tr>
+        `).join("")}</tbody>
+      </table>` : "";
+
+    const medBlock = s.meds.length ? `
+      <h2>其他藥物</h2>
+      <table class="segment-table">
+        <thead><tr><th>時間</th><th>內容</th></tr></thead>
+        <tbody>${s.meds.map(m=>`
+          <tr><td>${escapeHtml(fmtDateTime(m.time))}</td><td>${escapeHtml(m.detail)}</td></tr>
+        `).join("")}</tbody>
+      </table>` : "";
+
+    const statsBlock = `
+      <h2>急救摘要統計</h2>
+      <table class="segment-table">
+        <thead><tr><th>項目</th><th>數值</th></tr></thead>
+        <tbody>${statTableRows}</tbody>
+      </table>
+      ${shockDetailBlock}
+      ${medBlock}
+    `;
 
     const summary = `
       <div class="summary">
@@ -1466,18 +1697,20 @@
         <div><strong>ROSC：</strong>${state.roscTime ? escapeHtml(fmtDateTime(state.roscTime)) : "未記錄"}</div>
         <div><strong>累積 CPR 時間：</strong>${escapeHtml(fmtDuration(getTotalCprSeconds(new Date())))}</div>
       </div>
+    `;
 
-      <h2>CPR 分段紀錄</h2>
-      <table class="segment-table">
+    const timelineTable = `
+      <h2>事件時間軸</h2>
+      <table>
         <thead>
           <tr>
-            <th>段次</th>
-            <th>開始時間</th>
-            <th>結束時間</th>
-            <th>持續時間</th>
+            <th>事件</th>
+            <th>日期時間</th>
+            <th>相對時間</th>
+            <th>內容</th>
           </tr>
         </thead>
-        <tbody>${cprSegmentRows}</tbody>
+        <tbody>${rows}</tbody>
       </table>
     `;
 
@@ -1552,17 +1785,8 @@
       <body>
         <h1>ACLS 急救事件時間軸</h1>
         ${summary}
-        <table>
-          <thead>
-            <tr>
-              <th>事件</th>
-              <th>日期時間</th>
-              <th>相對時間</th>
-              <th>內容</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
+        ${timelineTable}
+        ${statsBlock}
         <div class="footer">列印時間：${escapeHtml(fmtDateTime(nowISO()))}</div>
         <script>
           window.onload = () => {
