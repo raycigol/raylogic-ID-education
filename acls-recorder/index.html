@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#111827" />
-  <title>ACLS 急救事件紀錄器 v2.8</title>
+  <title>ACLS 急救事件紀錄器 v2.9</title>
   <style>
     :root{
       --bg:#0f172a;
@@ -451,14 +451,31 @@
       }
     }
 
+  
+    .feedback-link{
+      color:#93c5fd;
+      font-weight:800;
+      text-decoration:underline;
+      text-underline-offset:2px;
+    }
+    .feedback-link:hover{
+      color:#dbeafe;
+    }
+
   </style>
 </head>
 <body>
 <div class="app">
   <div class="header">
     <div class="header-title">
-      <h1>ACLS 急救事件紀錄器 v2.8</h1>
-      <div class="subtitle">離線單頁版｜病人資訊可隨時輸入並自動保存</div>
+      <h1>ACLS 急救事件紀錄器 v2.9</h1>
+      <div class="subtitle">
+        離線單頁版｜病人資訊可隨時輸入並自動保存｜
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSexORVx-KhqJheWruCB7x62B_142OG0QLHTr5RfIfLWDHlfjw/viewform?usp=publish-editor"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="feedback-link">填寫使用回饋問卷</a>
+      </div>
     </div>
     <div id="statusPill" class="status-pill">尚未開始</div>
   </div>
