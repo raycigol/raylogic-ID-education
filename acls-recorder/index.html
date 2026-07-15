@@ -4,16 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#111827" />
-  <title>ACLS 急救事件紀錄器 v2.9</title>
-
-  <!-- PWA：離線可用、可加入主畫面 -->
-  <link rel="manifest" href="./manifest.json" />
-  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
-  <link rel="icon" type="image/png" href="./icon-192.png" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="ACLS 紀錄器" />
+  <title>ACLS 急救事件紀錄器 v3.0</title>
   <style>
     :root{
       --bg:#0f172a;
@@ -501,13 +492,14 @@
 <div class="app">
   <div class="header">
     <div class="header-title">
-      <h1>ACLS 急救事件紀錄器 v2.9</h1>
+      <h1>ACLS 急救事件紀錄器 v3.0</h1>
       <div class="subtitle">
         離線單頁版｜病人資訊可隨時輸入並自動保存｜
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSexORVx-KhqJheWruCB7x62B_142OG0QLHTr5RfIfLWDHlfjw/viewform?usp=publish-editor"
            target="_blank"
            rel="noopener noreferrer"
            class="feedback-link">填寫使用回饋問卷</a>
+        ｜建議使用前將裝置媒體音量調高
       </div>
     </div>
     <div id="statusPill" class="status-pill">尚未開始</div>
@@ -843,15 +835,66 @@
   function beep(kind="info"){
     try{
       if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.frequency.value = kind==="danger" ? 880 : kind==="warn" ? 660 : 520;
-      gain.gain.value = 0.09;
-      osc.start();
-      osc.stop(audioCtx.currentTime + (kind==="danger" ? 0.35 : 0.18));
+
+      const patterns = {
+        info: {
+          tones: [
+            {frequency: 620, start: 0.00, duration: 0.45},
+            {frequency: 780, start: 0.58, duration: 0.45}
+          ],
+          vibration: [350,180,350]
+        },
+        warn: {
+          tones: [
+            {frequency: 760, start: 0.00, duration: 0.55},
+            {frequency: 760, start: 0.72, duration: 0.55},
+            {frequency: 920, start: 1.44, duration: 0.65}
+          ],
+          vibration: [500,180,500,180,650]
+        },
+        danger: {
+          tones: [
+            {frequency: 980, start: 0.00, duration: 0.65},
+            {frequency: 760, start: 0.78, duration: 0.65},
+            {frequency: 980, start: 1.56, duration: 0.65},
+            {frequency: 760, start: 2.34, duration: 0.85}
+          ],
+          vibration: [650,180,650,180,650,180,850]
+        }
+      };
+
+      const pattern = patterns[kind] || patterns.info;
+      const master = audioCtx.createGain();
+      master.connect(audioCtx.destination);
+      master.gain.setValueAtTime(0.22, audioCtx.currentTime);
+
+      pattern.tones.forEach(tone => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = "square";
+        osc.frequency.setValueAtTime(tone.frequency, audioCtx.currentTime + tone.start);
+
+        gain.gain.setValueAtTime(0.0001, audioCtx.currentTime + tone.start);
+        gain.gain.exponentialRampToValueAtTime(0.95, audioCtx.currentTime + tone.start + 0.03);
+        gain.gain.setValueAtTime(
+          0.95,
+          audioCtx.currentTime + tone.start + Math.max(0.04, tone.duration - 0.08)
+        );
+        gain.gain.exponentialRampToValueAtTime(
+          0.0001,
+          audioCtx.currentTime + tone.start + tone.duration
+        );
+
+        osc.connect(gain);
+        gain.connect(master);
+
+        osc.start(audioCtx.currentTime + tone.start);
+        osc.stop(audioCtx.currentTime + tone.start + tone.duration + 0.03);
+      });
+
       if(navigator.vibrate){
-        navigator.vibrate(kind==="danger" ? [250,100,250] : [150]);
+        navigator.vibrate(pattern.vibration);
       }
     }catch(e){}
   }
