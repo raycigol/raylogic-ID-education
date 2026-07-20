@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#111827" />
-  <title>ACLS 急救事件紀錄器 v3.1</title>
+  <title>ACLS 急救事件紀錄器 v3.1.7</title>
   <style>
     :root{
       --bg:#0f172a;
@@ -348,10 +348,13 @@
         height:7px;
         margin-top:6px;
       }
-      .start-row{
-        grid-template-columns:1fr 1fr;
+      .action-row{
         gap:8px;
         margin-bottom:8px;
+      }
+      .action-row .btn{
+        min-height:50px;
+        padding:9px 7px;
       }
       .btn{
         min-height:46px;
@@ -486,13 +489,138 @@
     .sw-update-bar .sw-dismiss{background:#475569}
     .sw-update-bar button:disabled{opacity:.5;cursor:not-allowed}
 
+  
+    .action-row{
+      display:grid;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .action-row-2{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .action-row-3{grid-template-columns:repeat(3,minmax(0,1fr));}
+    .action-row .btn{
+      width:100%;
+      min-width:0;
+      min-height:64px;
+    }
+    @media(max-width:700px){
+      .action-row-3{grid-template-columns:repeat(2,minmax(0,1fr));}
+    }
+    @media(max-width:460px){
+      .action-row-2,.action-row-3{grid-template-columns:1fr;}
+    }
+
+  
+    .drug-circle-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:14px;
+      justify-items:center;
+      padding:4px 0;
+    }
+    .drug-circle{
+      width:104px;
+      height:104px;
+      border-radius:50%;
+      border:2px solid #64748b;
+      background:#1f2937;
+      color:#fff;
+      font-weight:900;
+      font-size:.82rem;
+      line-height:1.15;
+      padding:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      cursor:pointer;
+      box-shadow:0 5px 14px rgba(0,0,0,.24);
+      overflow-wrap:anywhere;
+    }
+    .drug-circle:active{transform:scale(.97)}
+    .drug-circle:hover{border-color:#93c5fd;background:#273449}
+    .drug-circle.custom{border-style:dashed;background:#374151}
+    @media(max-width:520px){
+      .drug-circle-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+      .drug-circle{width:88px;height:88px;font-size:.72rem;padding:7px}
+    }
+    @media(max-width:360px){
+      .drug-circle-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+
+  
+    .infusion-prep-summary{
+      background:#0b1220;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px;
+      line-height:1.55;
+      color:var(--muted);
+    }
+    .infusion-prep-title{
+      color:var(--text);
+      font-weight:900;
+      margin-bottom:4px;
+    }
+    .infusion-reprepare-btn{
+      width:100%;
+      min-height:44px;
+      margin-top:2px;
+    }
+
+  
+    /* 方形藥物快捷鍵 */
+    .drug-circle-grid,
+    .drug-pick-grid,
+    .quick-drug-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+    }
+
+    .drug-circle,
+    .drug-pick,
+    .quick-drug,
+    .drug-option{
+      width:100% !important;
+      min-width:0;
+      min-height:58px;
+      aspect-ratio:auto !important;
+      border-radius:12px !important;
+      padding:10px 8px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      line-height:1.15;
+      white-space:normal;
+      overflow-wrap:anywhere;
+      font-size:.86rem;
+      font-weight:900;
+    }
+
+    @media(max-width:520px){
+      .drug-circle-grid,
+      .drug-pick-grid,
+      .quick-drug-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+
+      .drug-circle,
+      .drug-pick,
+      .quick-drug,
+      .drug-option{
+        min-height:54px;
+        font-size:.8rem;
+      }
+    }
+
   </style>
 </head>
 <body>
 <div class="app">
   <div class="header">
     <div class="header-title">
-      <h1>ACLS 急救事件紀錄器 v3.1</h1>
+      <h1>ACLS 急救事件紀錄器 v3.1.7</h1>
       <div class="subtitle">
         離線單頁版｜病人資訊可隨時輸入並自動保存｜
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSexORVx-KhqJheWruCB7x62B_142OG0QLHTr5RfIfLWDHlfjw/viewform?usp=publish-editor"
@@ -530,28 +658,37 @@
         </div>
       </div>
 
-      <div class="start-row">
+      <div class="action-row action-row-2">
         <button id="eventStartBtn" class="btn btn-start">開始急救事件</button>
         <button id="resetBtn" class="btn btn-secondary">清除本次紀錄</button>
       </div>
-      <div class="start-row">
+
+      <div class="action-row action-row-3">
         <button id="startBtn" class="btn btn-resume" disabled>開始 CPR</button>
+        <button id="roscBtn" class="btn btn-rosc" disabled>ROSC</button>
         <button id="stopBtn" class="btn btn-secondary" disabled>停止 CPR</button>
       </div>
 
-      <div class="event-grid">
-        <button id="pulseBtn" class="btn btn-pulse" disabled>節律／脈搏檢查完成</button>
-        <button id="epiBtn" class="btn btn-epi" disabled>Epinephrine 1 mg</button>
-        <button id="airwayStartBtn" class="btn btn-airway" disabled>插管開始</button>
-        <button id="airwayBtn" class="btn btn-airway" disabled>插管完成</button>
-        <button id="rsiBtn" class="btn btn-drug" disabled>RSI 用藥</button>
-        <button id="roscBtn" class="btn btn-rosc" disabled>ROSC</button>
+      <div class="action-row action-row-3">
         <button id="shockBtn" class="btn btn-shock" disabled>電擊</button>
+        <button id="pulseBtn" class="btn btn-pulse" disabled>脈搏檢查完成</button>
+        <button id="vitalBtn" class="btn btn-note" disabled>生命徵象</button>
+      </div>
+
+      <div class="action-row action-row-3">
+        <button id="airwayStartBtn" class="btn btn-airway" disabled>插管開始</button>
+        <button id="rsiBtn" class="btn btn-drug" disabled>RSI 用藥</button>
+        <button id="airwayBtn" class="btn btn-airway" disabled>插管結束</button>
+      </div>
+
+      <div class="action-row action-row-3">
+        <button id="epiBtn" class="btn btn-epi" disabled>Epinephrine 1 mg</button>
         <button id="drugBtn" class="btn btn-drug" disabled>其他藥物</button>
         <button id="procedureBtn" class="btn btn-note" disabled>處置／管路</button>
-        <button id="vitalBtn" class="btn btn-note" disabled>生命徵象</button>
+      </div>
+
+      <div class="action-row action-row-1">
         <button id="noteBtn" class="btn btn-note" disabled>新增註記</button>
-        <button id="resumeBtn" class="btn btn-resume" disabled>再次開始 CPR</button>
       </div>
 
       <div class="hint">
@@ -610,6 +747,7 @@
     lastEpi: null,
     epiResetAt: null,
     intubationStart: null,
+    infusionPreparations: {},
     events: []
   };
 
@@ -819,6 +957,7 @@
       if(saved && Array.isArray(saved.events)) state = {...state, ...saved};
       state.bed = state.bed || "";
       state.mrn = state.mrn || "";
+      state.infusionPreparations = state.infusionPreparations || {};
       if(state.cprStart && !state.eventStart) state.eventStart = state.cprStart;
     }catch(e){}
   }
@@ -981,7 +1120,11 @@
     $("statusPill").className = `status-pill ${active ? "active" : state.roscTime ? "rosc" : ""}`;
 
     $("eventStartBtn").disabled = !!state.eventStart;
+
+    const hasPreviousCpr = !!state.cprStart;
     $("startBtn").disabled = !state.eventStart || active;
+    $("startBtn").textContent = hasPreviousCpr && !active ? "再次開始 CPR" : "開始 CPR";
+
     $("stopBtn").disabled = !state.eventStart || !active;
     ["airwayStartBtn","airwayBtn","rsiBtn","drugBtn","procedureBtn","vitalBtn","noteBtn"].forEach(id => {
       $(id).disabled = !state.eventStart;
@@ -989,7 +1132,6 @@
     ["pulseBtn","epiBtn","roscBtn","shockBtn"].forEach(id => {
       $(id).disabled = !state.eventStart || !active;
     });
-    $("resumeBtn").disabled = !state.eventStart || active || !state.cprStart;
 
     if(!state.cprStart){
       const patientInfo = [
@@ -1212,6 +1354,30 @@
 
   $("startBtn").addEventListener("click", async () => {
     await requestWakeLock();
+
+    if(state.cprStart){
+      if(state.lastEpi){
+        const elapsedWhileStopped = secondsBetween(state.lastEpi, nowISO());
+        if(elapsedWhileStopped >= 180){
+          state.epiResetAt = nowISO();
+          state.lastEpi = null;
+          lastEpiAlert = null;
+          save();
+        }
+      }
+
+      addEvent("cpr_resume","停止或 ROSC 後再次開始 CPR");
+      clearBanner();
+
+      if(!state.lastEpi){
+        showBanner("CPR 已重新開始；Epinephrine 計時已重新計算。", "info");
+      }else{
+        showBanner("CPR 已重新開始。", "danger");
+      }
+      beep("danger");
+      return;
+    }
+
     addEvent("cpr_start","");
     clearBanner();
     showBanner(`CPR 已開始：${fmtClock(state.cprStart)}`, "danger");
@@ -1368,27 +1534,6 @@
     $("modalSave").textContent = "確認停止";
   });
 
-  $("resumeBtn").addEventListener("click", async () => {
-    await requestWakeLock();
-
-    if(state.lastEpi){
-      const elapsedWhileStopped = secondsBetween(state.lastEpi, nowISO());
-      if(elapsedWhileStopped >= 180){
-        state.epiResetAt = nowISO();
-        state.lastEpi = null;
-        lastEpiAlert = null;
-        save();
-      }
-    }
-
-    addEvent("cpr_resume","停止後再次開始 CPR");
-    clearBanner();
-
-    if(!state.lastEpi){
-      showBanner("CPR 已重新開始；Epinephrine 計時已重新計算。", "info");
-    }
-  });
-
   $("shockBtn").addEventListener("click", () => {
     openModal("記錄電擊", `
       <label>能量
@@ -1410,51 +1555,251 @@
     });
   });
 
+  const QUICK_DRUGS = [
+    "Amiodarone",
+    "Lidocaine",
+    "Magnesium sulfate",
+    "Calcium chloride",
+    "Calcium gluconate",
+    "Sodium bicarbonate",
+    "Atropine",
+    "Adenosine",
+    "Norepinephrine",
+    "Dobutamine",
+    "Epinephrine",
+    "Vasopressin",
+    "Dopamine"
+  ];
+
+  const INFUSION_PREPARATION_DRUGS = new Set([
+    "Norepinephrine",
+    "Dobutamine",
+    "Epinephrine",
+    "Vasopressin",
+    "Dopamine"
+  ]);
+
   $("drugBtn").addEventListener("click", () => {
-    openModal("記錄其他藥物", `
-      <label>藥物
-        <select id="drugSelect">
-          <option value="">請選擇</option>
-          <option value="Amiodarone">Amiodarone</option>
-          <option value="Lidocaine">Lidocaine</option>
-          <option value="Magnesium sulfate">Magnesium sulfate</option>
-          <option value="Calcium chloride">Calcium chloride</option>
-          <option value="Calcium gluconate">Calcium gluconate</option>
-          <option value="Sodium bicarbonate">Sodium bicarbonate</option>
-          <option value="Atropine">Atropine</option>
-          <option value="Adenosine">Adenosine</option>
-          <option value="Dopamine">Dopamine</option>
-          <option value="Norepinephrine">Norepinephrine</option>
-          <option value="自訂">自訂</option>
-        </select>
-      </label>
-      <label>自訂藥物名稱
-        <input id="customDrugName" placeholder="選擇自訂時填寫">
-      </label>
+    const circles = QUICK_DRUGS.map(name => `
+      <button type="button" class="drug-circle" data-drug="${name}">${name}</button>
+    `).join("");
+
+    openModal("選擇其他藥物", `
+      <div class="hint" style="margin-top:0">點選藥物後，直接輸入劑量。</div>
+      <div class="drug-circle-grid">
+        ${circles}
+        <button type="button" class="drug-circle custom" data-drug="__custom__">其他／自訂</button>
+      </div>
+    `, null);
+
+    $("modalSave").style.display = "none";
+    $("modalBody").querySelectorAll(".drug-circle").forEach(btn => {
+      btn.addEventListener("click", () => openDrugDose(btn.getAttribute("data-drug")));
+    });
+  });
+
+  function openDrugDose(selectedDrug){
+    const isCustom = selectedDrug === "__custom__";
+    const isInfusionPreparation = INFUSION_PREPARATION_DRUGS.has(selectedDrug);
+    const title = isCustom ? "自訂藥物" : selectedDrug;
+
+    $("modalTitle").textContent = `其他藥物 · ${title}`;
+
+    if(isInfusionPreparation){
+      const savedPreparation = state.infusionPreparations?.[selectedDrug] || null;
+      if(savedPreparation){
+        openInfusionRateAdjustment(selectedDrug, savedPreparation);
+      }else{
+        openInfusionPreparationForm(selectedDrug);
+      }
+      return;
+    }
+
+    $("modalBody").innerHTML = `
+      ${isCustom ? `
+        <label>藥物名稱
+          <input id="selectedDrugName" placeholder="請輸入藥物名稱">
+        </label>
+      ` : `
+        <input id="selectedDrugName" type="hidden" value="${selectedDrug}">
+      `}
       <label>劑量
-        <input id="drugDose" placeholder="例如：300 mg">
+        <input id="selectedDrugDose" inputmode="decimal" placeholder="例如：300 mg">
       </label>
       <label>途徑
-        <select id="drugRoute">
+        <select id="selectedDrugRoute">
           <option value="IV">IV</option>
           <option value="IO">IO</option>
           <option value="IV/IO">IV/IO</option>
           <option value="ET">ET</option>
+          <option value="PO">PO</option>
           <option value="其他">其他</option>
         </select>
       </label>
-    `, () => {
-      const selected = $("drugSelect").value;
-      const custom = $("customDrugName").value.trim();
-      const name = selected === "自訂" ? custom : selected;
-      if(!name){ alert("請選擇或輸入藥物名稱"); return; }
-      const dose = $("drugDose").value.trim();
-      const route = $("drugRoute").value;
-      const detail = [name, dose, route].filter(Boolean).join("；");
-      addEvent("medication", detail);
+    `;
+
+    $("modalSave").style.display = "";
+    $("modalSave").textContent = "記錄給藥";
+
+    const firstInput = isCustom ? $("selectedDrugName") : $("selectedDrugDose");
+    if(firstInput) setTimeout(() => firstInput.focus(), 50);
+
+    modalSaveHandler = () => {
+      const name = $("selectedDrugName").value.trim();
+      const dose = $("selectedDrugDose").value.trim();
+      const route = $("selectedDrugRoute").value;
+      if(!name){ alert("請輸入藥物名稱"); return; }
+      if(!dose){ alert("請輸入藥物劑量"); return; }
+      addEvent("medication", [name, dose, route].filter(Boolean).join("；"));
       closeModal();
+    };
+  }
+
+  function openInfusionPreparationForm(drugName){
+    $("modalTitle").textContent = `泡製藥物 · ${drugName}`;
+    $("modalBody").innerHTML = `
+      <div class="hint" style="margin-top:0">
+        首次使用或重新泡製時，請輸入完整調製方式。
+      </div>
+
+      <label>藥物安瓿數（X amp）
+        <input id="infusionAmpCount" type="number" min="0" step="0.5"
+               inputmode="decimal" placeholder="例如：4">
+      </label>
+
+      <label>稀釋液（Y）
+        <select id="infusionDiluentSelect">
+          <option value="">請選擇</option>
+          <option value="Normal saline">Normal saline</option>
+          <option value="D5W">D5W</option>
+          <option value="D10W">D10W</option>
+          <option value="Sterile water">Sterile water</option>
+          <option value="其他">其他</option>
+        </select>
+      </label>
+
+      <label>自訂稀釋液
+        <input id="infusionCustomDiluent" placeholder="選擇「其他」時填寫">
+      </label>
+
+      <label>調製後總體積（Z mL）
+        <input id="infusionTotalVolume" type="number" min="0" step="0.1"
+               inputmode="decimal" placeholder="例如：250">
+      </label>
+
+      <label>開始輸注速率（A mL/hr）
+        <input id="infusionRate" type="number" min="0" step="0.1"
+               inputmode="decimal" placeholder="例如：5">
+      </label>
+
+      <label>補充註記（可留白）
+        <input id="infusionNote" placeholder="例如：由 CVC 輸注">
+      </label>
+    `;
+
+    $("modalSave").style.display = "";
+    $("modalSave").textContent = "記錄泡製與輸注";
+    setTimeout(() => $("infusionAmpCount")?.focus(), 50);
+
+    modalSaveHandler = () => {
+      const ampCount = $("infusionAmpCount").value.trim();
+      const selectedDiluent = $("infusionDiluentSelect").value;
+      const customDiluent = $("infusionCustomDiluent").value.trim();
+      const diluent = selectedDiluent === "其他" ? customDiluent : selectedDiluent;
+      const totalVolume = $("infusionTotalVolume").value.trim();
+      const rate = $("infusionRate").value.trim();
+      const note = $("infusionNote").value.trim();
+
+      if(!ampCount){ alert("請輸入藥物安瓿數"); return; }
+      if(!diluent){ alert("請選擇或輸入稀釋液"); return; }
+      if(!totalVolume){ alert("請輸入調製後總體積"); return; }
+      if(!rate){ alert("請輸入輸注速率"); return; }
+
+      const preparation = {
+        ampCount,
+        diluent,
+        totalVolume,
+        lastRate: rate,
+        note,
+        preparedAt: nowISO()
+      };
+
+      state.infusionPreparations[drugName] = preparation;
+      save();
+
+      addEvent("medication", [
+        drugName,
+        `${ampCount} amp`,
+        `稀釋液：${diluent}`,
+        `總體積 ${totalVolume} mL`,
+        `開始速率 ${rate} mL/hr`,
+        note
+      ].filter(Boolean).join("；"));
+      closeModal();
+    };
+  }
+
+  function openInfusionRateAdjustment(drugName, preparation){
+    $("modalTitle").textContent = `調整滴速 · ${drugName}`;
+    $("modalBody").innerHTML = `
+      <div class="infusion-prep-summary">
+        <div class="infusion-prep-title">目前泡製方式</div>
+        <div>${escapeHtml(preparation.ampCount)} amp ＋ ${escapeHtml(preparation.diluent)}</div>
+        <div>總體積 ${escapeHtml(preparation.totalVolume)} mL</div>
+        <div>目前速率 ${escapeHtml(preparation.lastRate || "未記錄")} mL/hr</div>
+      </div>
+
+      <label>新輸注速率（mL/hr）
+        <input id="newInfusionRate" type="number" min="0" step="0.1"
+               inputmode="decimal" value="${escapeHtml(preparation.lastRate || "")}"
+               placeholder="例如：8">
+      </label>
+
+      <label>補充註記（可留白）
+        <input id="rateAdjustmentNote" placeholder="例如：依血壓調升">
+      </label>
+
+      <button type="button" id="reprepareInfusionBtn"
+              class="small-btn infusion-reprepare-btn">
+        重新泡製／更換濃度
+      </button>
+    `;
+
+    $("modalSave").style.display = "";
+    $("modalSave").textContent = "記錄滴速調整";
+
+    setTimeout(() => {
+      const input = $("newInfusionRate");
+      if(input){
+        input.focus();
+        input.select();
+      }
+    }, 50);
+
+    $("reprepareInfusionBtn").addEventListener("click", () => {
+      openInfusionPreparationForm(drugName);
     });
-  });
+
+    modalSaveHandler = () => {
+      const newRate = $("newInfusionRate").value.trim();
+      const note = $("rateAdjustmentNote").value.trim();
+      if(!newRate){ alert("請輸入新的輸注速率"); return; }
+
+      const oldRate = preparation.lastRate || "";
+      preparation.lastRate = newRate;
+      preparation.updatedAt = nowISO();
+      state.infusionPreparations[drugName] = preparation;
+      save();
+
+      addEvent("medication", [
+        drugName,
+        `滴速調整 ${oldRate ? `${oldRate} → ` : ""}${newRate} mL/hr`,
+        `沿用泡製：${preparation.ampCount} amp／${preparation.diluent}／共 ${preparation.totalVolume} mL`,
+        note
+      ].filter(Boolean).join("；"));
+      closeModal();
+    };
+  }
 
   $("rsiBtn").addEventListener("click", () => {
     // 第一步：選藥（本院常規 Lidocaine／Ketamine／Rocuronium），此步驟不需「儲存」鍵
@@ -1605,6 +1950,7 @@
         lastEpi: null,
         epiResetAt: null,
         intubationStart: null,
+        infusionPreparations: {},
         events: []
       };
       lastCycleAlert = null;
