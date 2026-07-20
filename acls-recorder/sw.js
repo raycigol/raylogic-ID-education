@@ -5,7 +5,7 @@
  * 更新版本時，請把 CACHE_VERSION 加一（例如 acls-2.9.0 -> acls-2.9.1），
  * 這樣瀏覽器才會安裝新快取、清掉舊的；新版會等使用者按「立即更新」才套用。
  */
-const CACHE_VERSION = "acls-3.1.0";
+const CACHE_VERSION = "acls-3.1.7";
 const CACHE_NAME = `acls-recorder-${CACHE_VERSION}`;
 
 // 這支 App 是自給自足的單檔（CSS/JS 全部 inline），把外殼與圖示預先快取即可離線啟動。
