@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#111827" />
-  <title>ACLS 急救事件紀錄器 v3.1.10</title>
+  <title>ACLS 急救事件紀錄器 v3.1.14</title>
   <style>
     :root{
       --bg:#0f172a;
@@ -240,14 +240,25 @@
     textarea{min-height:80px;resize:vertical}
     .modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
     .banner{
-      display:none;
+      display:flex;
+      align-items:center;
+      min-height:50px;
       margin-bottom:12px;
       border-radius:14px;
       padding:12px 14px;
       font-weight:800;
       line-height:1.45;
+      visibility:hidden;
+      opacity:0;
+      pointer-events:none;
+      border:1px solid transparent;
+      transition:opacity .15s ease;
     }
-    .banner.show{display:block}
+    .banner.show{
+      visibility:visible;
+      opacity:1;
+      pointer-events:auto;
+    }
     .banner.warn{background:#78350f;border:1px solid #f59e0b}
     .banner.danger{background:#7f1d1d;border:1px solid #ef4444}
     .banner.info{background:#1e3a8a;border:1px solid #60a5fa}
@@ -893,13 +904,69 @@
       .mobile-record-actions .btn{width:100%}
     }
 
+
+    .patient-info-top{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:8px;
+      margin-bottom:10px;
+      flex:0 0 auto;
+    }
+    .patient-info-top label{font-size:.72rem}
+    .patient-info-top input{
+      margin-top:3px;
+      min-height:38px;
+      padding:8px 10px;
+      border-radius:9px;
+    }
+    .mobile-records-patient{
+      grid-template-columns:repeat(3,minmax(0,1fr));
+    }
+    @media(max-width:700px){
+      .patient-info-top{
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:6px;
+        margin-bottom:8px;
+      }
+      .patient-info-top label{font-size:.65rem}
+      .patient-info-top input{
+        padding:7px 6px;
+        min-height:36px;
+      }
+      .mobile-records-patient{grid-template-columns:1fr}
+    }
+    @media(max-width:420px){
+      .patient-info-top{grid-template-columns:1fr 1fr}
+      .patient-info-top label:last-child{grid-column:1/-1}
+    }
+
+
+    @media(max-width:820px){
+      #banner{
+        min-height:48px;
+        max-height:48px;
+        overflow:hidden;
+        margin-bottom:8px;
+        padding:9px 12px;
+        font-size:.8rem;
+      }
+    }
+
+    @media(min-width:900px){
+      #banner{
+        min-height:42px;
+        max-height:42px;
+        overflow:hidden;
+      }
+    }
+
 </style>
 </head>
 <body>
 <div class="app">
   <div class="header">
     <div class="header-title">
-      <h1>ACLS 急救事件紀錄器 v3.1.10</h1>
+      <h1>ACLS 急救事件紀錄器 v3.1.14</h1>
     </div>
     <div id="statusPill" class="status-pill">尚未開始</div>
   </div>
@@ -908,6 +975,18 @@
 
   <div class="grid">
     <section class="panel">
+      <div class="patient-info-top">
+        <label>床位（可留白）
+          <input id="patientBedMain" placeholder="例如：12A-03">
+        </label>
+        <label>病歷號（可留白）
+          <input id="patientMrnMain" inputmode="text" autocomplete="off" placeholder="例如：12345678">
+        </label>
+        <label>體重（kg，可留白）
+          <input id="patientWeightMain" type="number" min="0" step="0.1" inputmode="decimal" placeholder="例如：60">
+        </label>
+      </div>
+
       <div class="timer-card">
         <div class="metric primary">
           <div class="metric-label">本段 CPR 時間</div>
@@ -981,15 +1060,6 @@
     <section class="panel timeline-panel">
       <h2 class="section-title">事件時間軸</h2>
 
-      <div class="timeline-patient">
-        <label>床位（可留白）
-          <input id="patientBedMain" placeholder="例如：12A-03">
-        </label>
-        <label>病歷號（可留白）
-          <input id="patientMrnMain" inputmode="text" autocomplete="off" placeholder="例如：12345678">
-        </label>
-      </div>
-
       <div id="timeline" class="timeline">
         <div class="empty">尚無事件紀錄</div>
       </div>
@@ -1027,6 +1097,9 @@
       <label>病歷號（可留白）
         <input id="mobilePatientMrn" inputmode="text" autocomplete="off" placeholder="例如：12345678">
       </label>
+      <label>體重（kg，可留白）
+        <input id="mobilePatientWeight" type="number" min="0" step="0.1" inputmode="decimal" placeholder="例如：60">
+      </label>
     </div>
 
     <div id="mobileRecordsTimeline" class="timeline mobile-records-timeline">
@@ -1049,6 +1122,7 @@
   let state = {
     bed: "",
     mrn: "",
+    weight: "",
     eventStart: null,
     cprStart: null,
     active: false,
@@ -1267,6 +1341,7 @@
       if(saved && Array.isArray(saved.events)) state = {...state, ...saved};
       state.bed = state.bed || "";
       state.mrn = state.mrn || "";
+      state.weight = state.weight || "";
       state.infusionPreparations = state.infusionPreparations || {};
       if(state.cprStart && !state.eventStart) state.eventStart = state.cprStart;
     }catch(e){}
@@ -1348,14 +1423,33 @@
     }catch(e){}
   }
 
-  function showBanner(text, type="info"){
+  let bannerHoldUntil = 0;
+
+  function showBanner(text, type="info", holdMs=0){
     const b = $("banner");
     b.textContent = text;
     b.className = `banner show ${type}`;
+    bannerHoldUntil = holdMs > 0 ? Date.now() + holdMs : 0;
   }
-  function clearBanner(){
-    $("banner").className = "banner";
-    $("banner").textContent = "";
+
+  function clearBanner(force=false){
+    if(!force && Date.now() < bannerHoldUntil) return;
+    const b = $("banner");
+    b.className = "banner";
+    b.textContent = "";
+    bannerHoldUntil = 0;
+  }
+
+  function bannerTypeForEvent(type){
+    if(["cpr_start","cpr_resume","epinephrine","shock"].includes(type)) return "danger";
+    if(["cpr_stop","pulse_check"].includes(type)) return "warn";
+    return "info";
+  }
+
+  function showEventConfirmation(type, detail=""){
+    const label = eventLabels[type] || type;
+    const text = detail ? `${label}：${detail}` : label;
+    showBanner(text, bannerTypeForEvent(type), 2500);
   }
 
   function addEvent(type, detail="", customTime=null, extra={}) {
@@ -1387,6 +1481,7 @@
     }
     save();
     render();
+    showEventConfirmation(type, detail);
   }
 
   function removeEvent(id){
@@ -1419,6 +1514,7 @@
   function render(){
     $("patientBedMain").value = state.bed || "";
     $("patientMrnMain").value = state.mrn || "";
+    $("patientWeightMain").value = state.weight || "";
 
     const active = state.active;
     const lastStopEvent = [...state.events].reverse().find(e=>["rosc","cpr_stop"].includes(e.type));
@@ -1446,7 +1542,8 @@
     if(!state.cprStart){
       const patientInfo = [
         state.bed ? `床位 ${state.bed}` : "",
-        state.mrn ? `病歷號 ${state.mrn}` : ""
+        state.mrn ? `病歷號 ${state.mrn}` : "",
+        state.weight ? `體重 ${state.weight} kg` : ""
       ].filter(Boolean).join("｜");
 
       $("cprStartLabel").textContent = state.eventStart
@@ -1470,7 +1567,8 @@
 
       const patientInfo = [
         state.bed ? `床位 ${state.bed}` : "",
-        state.mrn ? `病歷號 ${state.mrn}` : ""
+        state.mrn ? `病歷號 ${state.mrn}` : "",
+        state.weight ? `體重 ${state.weight} kg` : ""
       ].filter(Boolean).join("｜");
 
       $("cprStartLabel").textContent = current
@@ -1672,20 +1770,27 @@
   function syncPatientInfo(){
     state.bed = $("patientBedMain").value.trim();
     state.mrn = $("patientMrnMain").value.trim();
+    state.weight = $("patientWeightMain").value.trim();
+    if($("mobilePatientBed")) $("mobilePatientBed").value = state.bed;
+    if($("mobilePatientMrn")) $("mobilePatientMrn").value = state.mrn;
+    if($("mobilePatientWeight")) $("mobilePatientWeight").value = state.weight;
     save();
   }
 
   function syncMobilePatientInfo(){
     state.bed = $("mobilePatientBed").value.trim();
     state.mrn = $("mobilePatientMrn").value.trim();
+    state.weight = $("mobilePatientWeight").value.trim();
     $("patientBedMain").value = state.bed;
     $("patientMrnMain").value = state.mrn;
+    $("patientWeightMain").value = state.weight;
     save();
   }
 
   $("mobileRecordsBtn").addEventListener("click", () => {
     $("mobilePatientBed").value = state.bed || "";
     $("mobilePatientMrn").value = state.mrn || "";
+    $("mobilePatientWeight").value = state.weight || "";
     $("mobileRecordsTimeline").innerHTML = timelineHtml();
     $("mobileRecordsModal").classList.add("show");
   });
@@ -1696,18 +1801,20 @@
 
   $("mobilePatientBed").addEventListener("input", syncMobilePatientInfo);
   $("mobilePatientMrn").addEventListener("input", syncMobilePatientInfo);
+  $("mobilePatientWeight").addEventListener("input", syncMobilePatientInfo);
   $("mobileUndoBtn").addEventListener("click", () => $("undoBtn").click());
   $("mobileCsvBtn").addEventListener("click", () => $("csvBtn").click());
   $("mobilePdfBtn").addEventListener("click", () => $("printBtn").click());
 
   $("patientBedMain").addEventListener("input", syncPatientInfo);
   $("patientMrnMain").addEventListener("input", syncPatientInfo);
+  $("patientWeightMain").addEventListener("input", syncPatientInfo);
 
   $("eventStartBtn").addEventListener("click", async () => {
     await requestWakeLock();
     syncPatientInfo();
     addEvent("event_start","開始急救事件");
-    showBanner(`急救事件已開始：${fmtClock(state.eventStart)}`, "info");
+    showBanner(`急救事件開始：開始急救事件`, "info", 2500);
     beep("info");
   });
 
@@ -1729,9 +1836,9 @@
       clearBanner();
 
       if(!state.lastEpi){
-        showBanner("CPR 已重新開始；Epinephrine 計時已重新計算。", "info");
+        showBanner("再次開始 CPR：停止或 ROSC 後再次開始 CPR；Epinephrine 計時已重新計算", "info", 2500);
       }else{
-        showBanner("CPR 已重新開始。", "danger");
+        showBanner("再次開始 CPR：停止或 ROSC 後再次開始 CPR", "danger", 2500);
       }
       beep("danger");
       return;
@@ -1739,26 +1846,24 @@
 
     addEvent("cpr_start","");
     clearBanner();
-    showBanner(`CPR 已開始：${fmtClock(state.cprStart)}`, "danger");
+    showBanner("CPR 開始", "danger", 2500);
     beep("danger");
   });
 
   $("pulseBtn").addEventListener("click", () => {
     addEvent("pulse_check","檢查完成，重新開始 2 分鐘循環");
-    clearBanner();
     lastCycleAlert = null;
   });
 
   $("epiBtn").addEventListener("click", () => {
     addEvent("epinephrine","1 mg IV/IO");
-    clearBanner();
     lastEpiAlert = null;
   });
 
   $("airwayStartBtn").addEventListener("click", () => {
     const during = state.active ? "CPR 進行中" : "未進行 CPR";
     addEvent("intubation_start", during);
-    showBanner(`已記錄插管開始：${fmtClock(state.intubationStart)}（${during}）`, "info");
+    showBanner(`插管開始：${during}`, "info", 2500);
   });
 
   $("airwayBtn").addEventListener("click", () => {
@@ -1857,7 +1962,7 @@
       closeModal();
       clearBanner();
       beep("info");
-      showBanner(`已記錄 ROSC：${fmtClock(state.roscTime)}`, "info");
+      showBanner(`ROSC：${detail}`, "info", 2500);
     });
     $("modalSave").textContent = "記錄 ROSC";
   });
@@ -1887,7 +1992,7 @@
       addEvent("cpr_stop", detail);
       closeModal();
       clearBanner();
-      showBanner(`已停止 CPR：${fmtClock(state.events[state.events.length-1].timestamp)}`, "warn");
+      showBanner(`CPR 停止：${detail}`, "warn", 2500);
       beep("warn");
     });
     $("modalSave").textContent = "確認停止";
@@ -2303,6 +2408,7 @@
       state = {
         bed: "",
         mrn: "",
+        weight: "",
         eventStart: null,
         cprStart: null,
         active: false,
@@ -2321,7 +2427,7 @@
       $("patientBedMain").value = "";
       $("patientMrnMain").value = "";
       render();
-      showBanner("已清除本次全部紀錄。", "info");
+      showBanner("已清除本次全部紀錄", "info", 2500);
       beep("info");
     });
     $("modalSave").textContent = "確認清除";
