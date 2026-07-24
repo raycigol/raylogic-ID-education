@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#111827" />
-  <title>ACLS 急救事件紀錄器 v3.1.19</title>
+  <title>ACLS 急救事件紀錄器 v3.1.20</title>
   <style>
     :root{
       --bg:#0f172a;
@@ -1003,7 +1003,7 @@
 <div class="app">
   <div class="header">
     <div class="header-title">
-      <h1>ACLS 急救事件紀錄器 v3.1.19</h1>
+      <h1>ACLS 急救事件紀錄器 v3.1.20</h1>
     </div>
     <div id="statusPill" class="status-pill">尚未開始</div>
   </div>
@@ -2319,6 +2319,39 @@
     };
   }
 
+  async function openRsiCalculatorPage(){
+    const weight = String(state.weight || "").trim();
+
+    // Use the current index.html directory as the base, regardless of repository name.
+    const targetUrl = new URL("./adult_rsi_dose_calculator_v1_0.html", window.location.href);
+    targetUrl.search = "";
+    if(weight){
+      targetUrl.searchParams.set("weight", weight);
+    }
+    // Cache-busting prevents an old cached index.html from being returned for this page.
+    targetUrl.searchParams.set("_rsi", Date.now().toString());
+
+    // Old PWA service workers may incorrectly return index.html for every navigation.
+    // Remove registrations and caches before opening the independent calculator page.
+    try{
+      if("serviceWorker" in navigator){
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(registration => registration.unregister()));
+      }
+      if("caches" in window){
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+      }
+    }catch(error){
+      console.warn("Unable to clear old PWA cache:", error);
+    }
+
+    const opened = window.open(targetUrl.href, "_blank", "noopener");
+    if(!opened){
+      window.location.assign(targetUrl.href);
+    }
+  }
+
   $("rsiBtn").addEventListener("click", () => {
     // 第一步：選藥（本院常規 Lidocaine／Ketamine／Rocuronium），此步驟不需「儲存」鍵
     openModal("RSI 用藥", `
@@ -2365,11 +2398,7 @@
     const referenceBtn = $("openRsiReferenceBtn");
     if(referenceBtn){
       referenceBtn.addEventListener("click", () => {
-        const weight = String(state.weight || "").trim();
-        const url = weight
-          ? `./adult_rsi_dose_calculator_v1_0.html?weight=${encodeURIComponent(weight)}`
-          : "./adult_rsi_dose_calculator_v1_0.html";
-        window.open(url, "_blank", "noopener");
+        openRsiCalculatorPage();
       });
     }
 
@@ -2461,11 +2490,7 @@
     const doseReferenceBtn = $("openRsiReferenceBtnDose");
     if(doseReferenceBtn){
       doseReferenceBtn.addEventListener("click", () => {
-        const weight = String(state.weight || "").trim();
-        const url = weight
-          ? `./adult_rsi_dose_calculator_v1_0.html?weight=${encodeURIComponent(weight)}`
-          : "./adult_rsi_dose_calculator_v1_0.html";
-        window.open(url, "_blank", "noopener");
+        openRsiCalculatorPage();
       });
     }
 
