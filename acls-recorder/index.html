@@ -2367,8 +2367,8 @@
       referenceBtn.addEventListener("click", () => {
         const weight = String(state.weight || "").trim();
         const url = weight
-          ? `adult_rsi_dose_calculator_v1_0.html?weight=${encodeURIComponent(weight)}`
-          : "adult_rsi_dose_calculator_v1_0.html";
+          ? `./adult_rsi_dose_calculator_v1_0.html?weight=${encodeURIComponent(weight)}`
+          : "./adult_rsi_dose_calculator_v1_0.html";
         window.open(url, "_blank", "noopener");
       });
     }
@@ -2463,8 +2463,8 @@
       doseReferenceBtn.addEventListener("click", () => {
         const weight = String(state.weight || "").trim();
         const url = weight
-          ? `adult_rsi_dose_calculator_v1_0.html?weight=${encodeURIComponent(weight)}`
-          : "adult_rsi_dose_calculator_v1_0.html";
+          ? `./adult_rsi_dose_calculator_v1_0.html?weight=${encodeURIComponent(weight)}`
+          : "./adult_rsi_dose_calculator_v1_0.html";
         window.open(url, "_blank", "noopener");
       });
     }
