@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>成人 RSI 藥物劑量計算器 v1.0</title>
+  <style>
+    :root{--bg:#0f172a;--panel:#111827;--panel2:#1f2937;--line:#334155;--text:#f8fafc;--muted:#cbd5e1;--blue:#2563eb;--orange:#d97706;--purple:#7c3aed;--shadow:0 10px 30px rgba(0,0,0,.25)}
+    *{box-sizing:border-box}
+    html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+    body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;background:linear-gradient(180deg,#0b1220 0%,var(--bg) 100%);color:var(--text)}
+    button,input{font:inherit}
+    .app{width:min(980px,100%);margin:auto;padding:14px;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+    h1{margin:0 0 4px;font-size:1.35rem}
+    .subtitle{color:var(--muted);font-size:.85rem;line-height:1.45}
+    .version{flex:0 0 auto;border:1px solid var(--line);border-radius:999px;padding:7px 10px;color:var(--muted);font-size:.78rem;font-weight:800}
+    .panel{background:rgba(17,24,39,.96);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+    .weight-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}
+    label{color:var(--muted);font-size:.8rem;font-weight:800}
+    input{width:100%;min-height:48px;margin-top:5px;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:#0b1220;color:#fff;font-size:16px}
+    .btn{min-height:48px;border:0;border-radius:12px;padding:10px 16px;color:#fff;font-weight:900;cursor:pointer;background:#475569}
+    .weight-status{margin-top:9px;min-height:1.4em;color:var(--muted);font-size:.82rem;line-height:1.4}
+    .section-title{margin:0 0 10px;font-size:1rem}
+    .drug-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .drug-card{border:1px solid var(--line);border-left:5px solid var(--blue);background:#0b1220;border-radius:14px;padding:12px}
+    .drug-card.premed{border-left-color:var(--orange)}
+    .drug-card.paralysis{border-left-color:var(--purple)}
+    .drug-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+    .drug-name{font-weight:900;font-size:1rem}
+    .category{border-radius:999px;padding:4px 8px;font-size:.68rem;font-weight:900;color:#fff;background:#475569;white-space:nowrap}
+    .dose-main{font-size:1.38rem;font-weight:900;font-variant-numeric:tabular-nums;margin-bottom:4px}
+    .dose-sub{color:var(--muted);font-size:.84rem;line-height:1.45}
+    .lowest{display:inline-block;margin-top:8px;padding:6px 8px;border-radius:9px;background:#064e3b;color:#d1fae5;font-size:.78rem;font-weight:900}
+    .warning{margin-top:8px;border-radius:10px;padding:8px 9px;background:#7f1d1d;border:1px solid #ef4444;color:#fee2e2;font-size:.78rem;line-height:1.4;font-weight:800}
+    .note{color:var(--muted);font-size:.78rem;line-height:1.55}
+    .source{margin-top:8px;color:#94a3b8;font-size:.72rem;line-height:1.45}
+    .empty{grid-column:1/-1;border:1px dashed var(--line);border-radius:14px;padding:28px 12px;text-align:center;color:var(--muted)}
+    @media(max-width:680px){.app{padding:9px}.panel{padding:10px;border-radius:15px}.drug-grid{grid-template-columns:1fr}.weight-row{grid-template-columns:1fr}.btn{width:100%}}
+  </style>
+</head>
+<body>
+<main class="app">
+  <header class="header">
+    <div><h1>成人 RSI 藥物劑量計算器</h1><div class="subtitle">輸入體重後，自動換算建議劑量與實際抽取體積</div></div>
+    <div class="version">v1.0</div>
+  </header>
+
+  <section class="panel">
+    <div class="weight-row">
+      <label>體重（kg）
+        <input id="weightInput" type="number" min="20" max="300" step="0.1" inputmode="decimal" placeholder="例如：60">
+      </label>
+      <button id="clearBtn" class="btn" type="button">清除</button>
+    </div>
+    <div id="weightStatus" class="weight-status">請輸入成人體重。</div>
+  </section>
+
+  <section class="panel">
+    <h2 class="section-title">建議劑量</h2>
+    <div id="drugGrid" class="drug-grid"><div class="empty">輸入體重後顯示計算結果</div></div>
+  </section>
+
+  <section class="panel note">
+    <strong>使用提醒</strong><br>
+    本工具僅供臨床團隊快速換算。實際藥物選擇與劑量仍須依病人血流動力學、共病、禁忌症及現場醫囑判斷。依原始表格建議，請由建議範圍的最低劑量開始給予。
+    <div class="source">資料來源：成人 RSI 藥物劑量參考對照表，2024.11 急救小組修訂。</div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const STORAGE_KEY = "adult_rsi_calculator_weight";
+  const DRUGS = [
+    {name:"Lidocaine inj 2%",category:"前置用藥",className:"premed",concentration:20,doseMin:1.5,doseMax:1.5,spec:"100 mg/5 mL/amp",note:"腦壓過高或氣管痙攣時使用，儘快給予。"},
+    {name:"Propofol",category:"鎮靜劑",className:"sedation",concentration:10,doseMin:1,doseMax:2.5,spec:"200 mg/20 mL/amp",note:"與 Ketamine 二者擇一，儘快給予。"},
+    {name:"Ketamine",category:"鎮靜劑",className:"sedation",concentration:50,doseMin:1,doseMax:2,spec:"500 mg/10 mL/vial",note:"與 Propofol 二者擇一，儘快給予。",warning:"原始參考表註記：腦壓高禁忌。"},
+    {name:"Rocuronium",category:"肌肉鬆弛劑",className:"paralysis",concentration:10,doseMin:1,doseMax:1,spec:"50 mg/5 mL/vial",note:"病人睡著後給予，bagging 至少 1 分鐘再插管。"}
+  ];
+  const fmt = v => Number(v.toFixed(2)).toString();
+
+  function render(){
+    const weight = Number($("weightInput").value);
+    if(!Number.isFinite(weight) || weight <= 0){
+      $("weightStatus").textContent = "請輸入成人體重。";
+      $("drugGrid").innerHTML = '<div class="empty">輸入體重後顯示計算結果</div>';
+      return;
+    }
+    localStorage.setItem(STORAGE_KEY,String(weight));
+    $("weightStatus").textContent = `目前以 ${fmt(weight)} kg 計算。`;
+
+    $("drugGrid").innerHTML = DRUGS.map(drug => {
+      const minMg = weight * drug.doseMin;
+      const maxMg = weight * drug.doseMax;
+      const minMl = minMg / drug.concentration;
+      const maxMl = maxMg / drug.concentration;
+      const range = drug.doseMin !== drug.doseMax;
+      return `
+        <article class="drug-card ${drug.className}">
+          <div class="drug-head"><div class="drug-name">${drug.name}</div><div class="category">${drug.category}</div></div>
+          <div class="dose-main">${range ? `${fmt(minMg)}–${fmt(maxMg)} mg` : `${fmt(minMg)} mg`}</div>
+          <div class="dose-sub">
+            建議體積：<strong>${range ? `${fmt(minMl)}–${fmt(maxMl)} mL` : `${fmt(minMl)} mL`}</strong><br>
+            建議劑量：${drug.doseMin}${range ? `–${drug.doseMax}` : ""} mg/kg<br>
+            規格：${drug.spec}
+          </div>
+          <div class="lowest">最低建議：${fmt(minMg)} mg（${fmt(minMl)} mL）</div>
+          <div class="dose-sub" style="margin-top:8px">${drug.note}</div>
+          ${drug.warning ? `<div class="warning">${drug.warning}</div>` : ""}
+        </article>`;
+    }).join("");
+  }
+
+  const params = new URLSearchParams(location.search);
+  const initial = params.get("weight") || localStorage.getItem(STORAGE_KEY) || "";
+  if(initial) $("weightInput").value = initial;
+  $("weightInput").addEventListener("input",render);
+  $("clearBtn").addEventListener("click",()=>{ $("weightInput").value=""; localStorage.removeItem(STORAGE_KEY); render(); });
+  render();
+})();
+</script>
+</body>
+</html>
