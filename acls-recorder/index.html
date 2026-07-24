@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#111827" />
-  <title>ACLS 急救事件紀錄器 v3.1.20</title>
+  <title>ACLS 急救事件紀錄器 v3.1.22</title>
   <style>
     :root{
       --bg:#0f172a;
@@ -1003,7 +1003,7 @@
 <div class="app">
   <div class="header">
     <div class="header-title">
-      <h1>ACLS 急救事件紀錄器 v3.1.20</h1>
+      <h1>ACLS 急救事件紀錄器 v3.1.22</h1>
     </div>
     <div id="statusPill" class="status-pill">尚未開始</div>
   </div>
@@ -2346,10 +2346,7 @@
       console.warn("Unable to clear old PWA cache:", error);
     }
 
-    const opened = window.open(targetUrl.href, "_blank", "noopener");
-    if(!opened){
-      window.location.assign(targetUrl.href);
-    }
+    window.open(targetUrl.href, "_blank", "noopener");
   }
 
   $("rsiBtn").addEventListener("click", () => {
