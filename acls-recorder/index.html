@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#111827" />
-  <title>ACLS 急救事件紀錄器 v3.1.14</title>
+  <title>ACLS 急救事件紀錄器 v3.1.19</title>
   <style>
     :root{
       --bg:#0f172a;
@@ -960,13 +960,50 @@
       }
     }
 
+
+    .rsi-reference-wrap{
+      margin-top:10px;
+    }
+    .rsi-reference-btn{
+      width:100%;
+      min-height:44px;
+      border:1px solid #60a5fa;
+      background:#1e3a8a;
+      color:#fff;
+      border-radius:11px;
+      padding:10px 12px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .rsi-reference-note{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:.75rem;
+      line-height:1.4;
+    }
+
+
+    .rsi-weight-box{
+      margin-bottom:10px;
+      padding:10px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#0b1220;
+    }
+    .rsi-weight-box label{
+      display:block;
+    }
+    .rsi-weight-box input{
+      margin-top:5px;
+    }
+
 </style>
 </head>
 <body>
 <div class="app">
   <div class="header">
     <div class="header-title">
-      <h1>ACLS 急救事件紀錄器 v3.1.14</h1>
+      <h1>ACLS 急救事件紀錄器 v3.1.19</h1>
     </div>
     <div id="statusPill" class="status-pill">尚未開始</div>
   </div>
@@ -1161,9 +1198,24 @@
 
   // RSI 常規用藥與本院濃度（護理師習慣以 mL 記錄，系統後台換算為 mg）
   const RSI_DRUGS = {
-    lidocaine:  { label: "Lidocaine",  mgPerMl: 20 },
-    ketamine:   { label: "Ketamine",   mgPerMl: 50 },
-    rocuronium: { label: "Rocuronium", mgPerMl: 10 }
+    lidocaine: {
+      label: "Lidocaine",
+      mgPerMl: 20,
+      doseMinMgKg: 1.5,
+      doseMaxMgKg: 1.5
+    },
+    ketamine: {
+      label: "Ketamine",
+      mgPerMl: 50,
+      doseMinMgKg: 1,
+      doseMaxMgKg: 2
+    },
+    rocuronium: {
+      label: "Rocuronium",
+      mgPerMl: 10,
+      doseMinMgKg: 1,
+      doseMaxMgKg: 1
+    }
   };
 
   function nowISO(){ return new Date().toISOString(); }
@@ -2270,36 +2322,161 @@
   $("rsiBtn").addEventListener("click", () => {
     // 第一步：選藥（本院常規 Lidocaine／Ketamine／Rocuronium），此步驟不需「儲存」鍵
     openModal("RSI 用藥", `
+      <div class="rsi-weight-box">
+        <label>體重（kg）
+          <input id="rsiWeightInput"
+                 type="number"
+                 min="0"
+                 step="0.1"
+                 inputmode="decimal"
+                 value="${state.weight || ""}"
+                 placeholder="例如：60">
+        </label>
+      </div>
       <div class="hint">選擇用藥（本院常規）</div>
       <button type="button" class="btn btn-drug rsi-pick" data-rsi="lidocaine">Lidocaine</button>
       <button type="button" class="btn btn-drug rsi-pick" data-rsi="ketamine">Ketamine</button>
       <button type="button" class="btn btn-drug rsi-pick" data-rsi="rocuronium">Rocuronium</button>
+
+      <div class="rsi-reference-wrap">
+        <button type="button" id="openRsiReferenceBtn" class="rsi-reference-btn">
+          開啟 RSI 劑量參考
+        </button>
+        <div class="rsi-reference-note">
+          會自動帶入目前體重，並在新分頁開啟完整計算頁。
+        </div>
+      </div>
     `, null);
     $("modalSave").style.display = "none";
+    const rsiWeightInput = $("rsiWeightInput");
+    if(rsiWeightInput){
+      rsiWeightInput.addEventListener("input", () => {
+        state.weight = rsiWeightInput.value.trim();
+        $("patientWeightMain").value = state.weight;
+        if($("mobilePatientWeight")) $("mobilePatientWeight").value = state.weight;
+        save();
+      });
+    }
+
     $("modalBody").querySelectorAll(".rsi-pick").forEach(btn => {
       btn.addEventListener("click", () => openRsiDose(btn.getAttribute("data-rsi")));
     });
+
+    const referenceBtn = $("openRsiReferenceBtn");
+    if(referenceBtn){
+      referenceBtn.addEventListener("click", () => {
+        const weight = String(state.weight || "").trim();
+        const url = weight
+          ? `adult_rsi_dose_calculator_v1_0.html?weight=${encodeURIComponent(weight)}`
+          : "adult_rsi_dose_calculator_v1_0.html";
+        window.open(url, "_blank", "noopener");
+      });
+    }
+
   });
 
   // 第二步：輸入 mL，儲存時依本院濃度換算 mg
   function openRsiDose(key){
     const drug = RSI_DRUGS[key];
     if(!drug) return;
+
+    const weight = parseFloat(String(state.weight || "").replace(",", "."));
+    let suggestion = "建議劑量：請先在計時器上方輸入體重";
+
+    if(Number.isFinite(weight) && weight > 0){
+      const minMg = weight * drug.doseMinMgKg;
+      const maxMg = weight * drug.doseMaxMgKg;
+      const minMl = minMg / drug.mgPerMl;
+      const maxMl = maxMg / drug.mgPerMl;
+      const fmtDose = value => Number(value.toFixed(2)).toString();
+
+      suggestion = drug.doseMinMgKg === drug.doseMaxMgKg
+        ? `建議劑量：${fmtDose(minMl)} mL（${fmtDose(minMg)} mg）`
+        : `建議劑量：${fmtDose(minMl)}–${fmtDose(maxMl)} mL（${fmtDose(minMg)}–${fmtDose(maxMg)} mg）`;
+    }
+
     $("modalTitle").textContent = `RSI 用藥 · ${drug.label}`;
     $("modalBody").innerHTML = `
+      <div class="rsi-weight-box">
+        <label>體重（kg）
+          <input id="rsiDoseWeightInput"
+                 type="number"
+                 min="0"
+                 step="0.1"
+                 inputmode="decimal"
+                 value="${state.weight || ""}"
+                 placeholder="例如：60">
+        </label>
+      </div>
+
       <label>劑量 (mL)
-        <input id="rsiMl" inputmode="decimal" placeholder="例如：3">
+        <input id="rsiMl"
+               inputmode="decimal"
+               placeholder="${suggestion}">
       </label>
-      <div class="hint">${drug.label} 1 mL = ${drug.mgPerMl} mg；儲存時自動換算為 mg。</div>
+      <div class="hint">
+        ${drug.label} 1 mL = ${drug.mgPerMl} mg；儲存時自動換算為 mg。
+      </div>
+
+      <div class="rsi-reference-wrap">
+        <button type="button" id="openRsiReferenceBtnDose" class="rsi-reference-btn">
+          開啟完整 RSI 劑量參考
+        </button>
+      </div>
     `;
+
     $("modalSave").style.display = "";
     $("modalSave").textContent = "儲存";
+
     const input = $("rsiMl");
-    if(input) input.focus();
+    if(input && window.innerWidth > 820) input.focus();
+
+    const doseWeightInput = $("rsiDoseWeightInput");
+    if(doseWeightInput){
+      doseWeightInput.addEventListener("input", () => {
+        state.weight = doseWeightInput.value.trim();
+        $("patientWeightMain").value = state.weight;
+        if($("mobilePatientWeight")) $("mobilePatientWeight").value = state.weight;
+        save();
+
+        const newWeight = parseFloat(String(state.weight || "").replace(",", "."));
+        let newSuggestion = "建議劑量：請先輸入體重";
+
+        if(Number.isFinite(newWeight) && newWeight > 0){
+          const minMg = newWeight * drug.doseMinMgKg;
+          const maxMg = newWeight * drug.doseMaxMgKg;
+          const minMl = minMg / drug.mgPerMl;
+          const maxMl = maxMg / drug.mgPerMl;
+          const fmtDose = value => Number(value.toFixed(2)).toString();
+
+          newSuggestion = drug.doseMinMgKg === drug.doseMaxMgKg
+            ? `建議劑量：${fmtDose(minMl)} mL（${fmtDose(minMg)} mg）`
+            : `建議劑量：${fmtDose(minMl)}–${fmtDose(maxMl)} mL（${fmtDose(minMg)}–${fmtDose(maxMg)} mg）`;
+        }
+
+        $("rsiMl").placeholder = newSuggestion;
+      });
+    }
+
+    const doseReferenceBtn = $("openRsiReferenceBtnDose");
+    if(doseReferenceBtn){
+      doseReferenceBtn.addEventListener("click", () => {
+        const weight = String(state.weight || "").trim();
+        const url = weight
+          ? `adult_rsi_dose_calculator_v1_0.html?weight=${encodeURIComponent(weight)}`
+          : "adult_rsi_dose_calculator_v1_0.html";
+        window.open(url, "_blank", "noopener");
+      });
+    }
+
     modalSaveHandler = () => {
       const raw = $("rsiMl").value.trim().replace(",", ".");
       const ml = parseFloat(raw);
-      if(!raw || isNaN(ml) || ml <= 0){ alert("請輸入正確的 mL 數值"); return; }
+      if(!raw || isNaN(ml) || ml <= 0){
+        alert("請輸入正確的 mL 數值");
+        return;
+      }
+
       const mg = Math.round(ml * drug.mgPerMl * 100) / 100;
       addEvent("rsi", `${drug.label} ${ml} mL（${mg} mg）`);
       closeModal();
