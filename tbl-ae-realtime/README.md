@@ -18,3 +18,12 @@
 - **安全待驗證**：SECURITY DEFINER 函式、教師角色、student join code、鎖定與提交競爭、已公布成績是否受到防提前洩漏保護。
 - 不要在公開 GitHub 放 secret key、資料庫密碼或 13 組 join code。config.js 只可放 Supabase 公開 publishable key。
 - 舊有單機及快照查分版保留不動。
+
+
+## TEST 模擬提交工具
+- 僅指定 TEST 課堂 `0f82561e-c980-44cb-8a5d-091dbc9c71e6` 且名稱為 `2026 ID Block TBL — TEST` 才顯示按鈕。
+- 教師先開放階段，再按該階段「模擬 13 組提交（TEST）」並確認；為尚未提交的組別補答案 A，保留既有答案。這是實際測試資料，會納入 TEST 鎖定與計分。
+- 未開放、已鎖定、已公布或已滿 13 組時停用；不自動開放、鎖定、公布或清除資料。
+- 新環境先在 Supabase SQL Editor 執行 `sql/test-simulation.sql`。伺服器獨立檢查固定 TEST ID、名稱、教師擁有權、非匿名登入及階段狀態，正式課堂 ID 即使直接呼叫也會拒絕。
+- 模擬列的 `submitted_by` 是操作教師；不建立學生帳號、不讀取或公開組別加入代碼。重複呼叫不覆寫答案、不增加重複列。
+- 前端回歸測試：`node tbl-ae-realtime/tests/teacher-session.cjs`。

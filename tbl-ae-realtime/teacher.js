@@ -1,5 +1,7 @@
 let teacherSession=null,teacherTitle='',busy=false,actionBusy=false,refreshNonce=0,pendingRefresh=false;
 const SESSION_KEY='tbl-ae-realtime-teacher-session';
+const TEST_SESSION_ID='0f82561e-c980-44cb-8a5d-091dbc9c71e6';
+const isTestSession=(session,title)=>session===TEST_SESSION_ID&&title==='2026 ID Block TBL — TEST';
 async function loadTeacher(){
  if(busy||actionBusy){pendingRefresh=true;return}
  if(document.activeElement===$('sessionSelect'))return;
@@ -53,6 +55,21 @@ async function loadTeacher(){
      try{await rpc(fn,{p_session_id:session,p_stage:s.stage_number});say('已在「'+name+'」執行 Stage '+s.stage_number+'：'+label,'good')}
      catch(e){say(errorText(e),'error')}finally{actionBusy=false;$('sessionSelect').disabled=false;await loadTeacher()}
     };buttons.append(b)
+   }
+   if(isTestSession(target,name)){
+    const simulate=document.createElement('button');simulate.className='secondary';simulate.textContent='模擬 13 組提交（TEST）';
+    simulate.disabled=!s.is_open||s.is_locked||s.is_revealed||count>=13;
+    simulate.onclick=async()=>{
+     if(actionBusy||nonce!==refreshNonce||teacherSession!==target||!isTestSession(target,teacherTitle))return;
+     if(!confirm('僅限 TEST 課堂：'+name+'\nStage '+s.stage_number+'：為未提交的組別補上模擬答案 A，補齊 13 組。\n既有答案不會覆寫，確定執行？'))return;
+     actionBusy=true;refreshNonce++;$('sessionSelect').disabled=true;
+     try{
+      const inserted=await rpc('tbl_teacher_simulate_test_submissions',{p_session_id:target,p_stage:s.stage_number});
+      say('TEST Stage '+s.stage_number+' 已新增 '+inserted+' 組模擬提交（答案 A），既有答案保留。','good');
+     }catch(error){say(errorText(error),'error')}
+     finally{actionBusy=false;$('sessionSelect').disabled=false;await loadTeacher()}
+    };
+    buttons.append(simulate);
    }
    row.append(buttons);area.append(row)
   }
