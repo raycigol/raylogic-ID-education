@@ -28,5 +28,12 @@ const flush=async()=>{for(let count=0;count<30;count++)await new Promise(resolve
  assert.ok(calls.some(call=>call[0]==='tbl_teacher_simulate_test_submissions'&&call[1].p_session_id===sessions[0].id));
  await nodes.get('stages').children[0].children[1].children[0].onclick();await flush();
  assert.ok(calls.some(call=>call[0]==='tbl_teacher_open_stage'&&call[1].p_session_id===sessions[0].id));
- console.log('PASS: stable options, focused selector, switch during refresh, selected session RPC, stale action rejection, TEST operation');
+ context.prompt=()=>null;const resets=()=>calls.filter(call=>call[0]==='tbl_teacher_reset_session').length;
+ await nodes.get('resetSession').onclick();assert.equal(resets(),0);
+ context.prompt=()=>'wrong classroom';await nodes.get('resetSession').onclick();assert.equal(resets(),0);
+ context.prompt=()=>sessions[0].title;await nodes.get('resetSession').onclick();await flush();
+ assert.equal(resets(),1);
+ const reset=calls.find(call=>call[0]==='tbl_teacher_reset_session');
+ assert.equal(reset[1].p_session_id,sessions[0].id);assert.equal(reset[1].p_confirm_title,sessions[0].title);
+ console.log('PASS: selector switching and simulator regression; reset cancellation, wrong-title rejection and captured session target');
 })().catch(error=>{console.error(error);process.exitCode=1});

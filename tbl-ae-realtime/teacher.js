@@ -31,6 +31,18 @@ async function loadTeacher(){
   $('sessionName').textContent='目前操作：'+teacherTitle;
   $('control').classList.remove('hide');$('scores').classList.remove('hide');
   const target=teacherSession;
+  $('resetSession').onclick=async()=>{
+   if(actionBusy||nonce!==refreshNonce||teacherSession!==target)return;
+   const confirmation=prompt('重置課堂：'+name+'\n將永久清除本課堂所有答案與分數，四階段回到未開放。\n組別、加入代碼與學生綁定保留。\n請先另存需要保留的成績，再輸入完整課堂名稱確認：');
+   if(confirmation===null)return;
+   if(confirmation!==name){say('課堂名稱不符，未執行重置。','error');return}
+   if(!confirm('最後確認：永久清除「'+name+'」的答案與分數？\n只處理此課堂，無法從頁面復原。'))return;
+   actionBusy=true;refreshNonce++;$('sessionSelect').disabled=true;$('resetSession').disabled=true;
+   $('stages').replaceChildren();$('scoreRows').replaceChildren();
+   try{await rpc('tbl_teacher_reset_session',{p_session_id:target,p_confirm_title:confirmation});say('已重置「'+name+'」，答案與分數已清除，請重新開放 Stage 1。','good')}
+   catch(error){say(errorText(error),'error')}
+   finally{actionBusy=false;$('sessionSelect').disabled=false;$('resetSession').disabled=false;await loadTeacher()}
+  };
   const [{data:st,error:ee},{data:sub,error:es}]=await Promise.all([
    sb.from('tbl_stages').select('stage_number,is_open,is_locked,is_revealed').eq('session_id',target).order('stage_number'),
    sb.from('tbl_submissions').select('stage_number,team_id').eq('session_id',target)
