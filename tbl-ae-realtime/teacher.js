@@ -1,22 +1,31 @@
-let teacherSession=null,teacherTitle='',busy=false,actionBusy=false,refreshNonce=0;
+let teacherSession=null,teacherTitle='',busy=false,actionBusy=false,refreshNonce=0,pendingRefresh=false;
 const SESSION_KEY='tbl-ae-realtime-teacher-session';
 async function loadTeacher(){
- if(busy||actionBusy)return;
+ if(busy||actionBusy){pendingRefresh=true;return}
+ if(document.activeElement===$('sessionSelect'))return;
  busy=true;
  const nonce=refreshNonce;
  try{
   const {data:u}=await sb.auth.getUser();
+  if(nonce!==refreshNonce)return;
   if(!u.user||u.user.is_anonymous){$('control').classList.add('hide');$('scores').classList.add('hide');return}
   const {data:ss,error:se}=await sb.from('tbl_sessions').select('id,title,created_at').order('created_at',{ascending:true});
+  if(nonce!==refreshNonce)return;
   if(se)throw se;
   if(!ss?.length){say('沒有找到屬於這個帳號的課堂。','error');$('control').classList.add('hide');$('scores').classList.add('hide');return}
   const selector=$('sessionSelect');
   const preferred=teacherSession||sessionStorage.getItem(SESSION_KEY);
-  const selected=ss.find(x=>x.id===preferred)||ss.find(x=>x.title==='2026 ID Block TBL — TEST')||ss[0];
+  const selected=ss.find(x=>x.id===preferred)||(!preferred&&(ss.find(x=>x.title==='2026 ID Block TBL — TEST')||ss[0]));
+  if(!selected){$('stages').replaceChildren();$('scoreRows').replaceChildren();throw new Error('目前課堂已不存在或無讀取權限，請重新登入並確認課堂權限。')}
   teacherSession=selected.id;teacherTitle=selected.title;
-  selector.replaceChildren();
-  for(const s of ss){const o=document.createElement('option');o.value=s.id;o.textContent=s.title+(s.title.includes('TEST')?'（測試）':'（正式）');selector.append(o)}
+  const options=ss.map(s=>({value:s.id,text:s.title+(s.title.includes('TEST')?'（測試）':'（正式）')}));
+  if(selector.options.length!==options.length||options.some((item,index)=>selector.options[index].value!==item.value||selector.options[index].textContent!==item.text)){
+   selector.replaceChildren();
+   for(const item of options){const option=document.createElement('option');option.value=item.value;option.textContent=item.text;selector.append(option)}
+  }
   selector.value=teacherSession;
+  sessionStorage.setItem(SESSION_KEY,teacherSession);
+  const name=teacherTitle;
   $('sessionName').textContent='目前操作：'+teacherTitle;
   $('control').classList.remove('hide');$('scores').classList.remove('hide');
   const target=teacherSession;
@@ -36,29 +45,31 @@ async function loadTeacher(){
    for(const [label,fn,allow] of operations){
     const b=document.createElement('button');b.className='secondary';b.textContent=label;b.disabled=!allow;
     b.onclick=async()=>{
-     if(actionBusy)return;
-     const name=teacherTitle,session=teacherSession;
+     if(actionBusy||nonce!==refreshNonce||teacherSession!==target)return;
+     const session=target;
      if(!confirm('操作課堂：'+name+'\nStage '+s.stage_number+'：'+label+'？\n請確認是正確場次。'))return;
      actionBusy=true;
+     refreshNonce++;$('sessionSelect').disabled=true;
      try{await rpc(fn,{p_session_id:session,p_stage:s.stage_number});say('已在「'+name+'」執行 Stage '+s.stage_number+'：'+label,'good')}
-     catch(e){say(errorText(e),'error')}finally{actionBusy=false;await loadTeacher()}
+     catch(e){say(errorText(e),'error')}finally{actionBusy=false;$('sessionSelect').disabled=false;await loadTeacher()}
     };buttons.append(b)
    }
    row.append(buttons);area.append(row)
   }
   const result=await rpc('tbl_published_scores',{p_session_id:target});
   if(nonce===refreshNonce&&teacherSession===target)showScores(result);
- }catch(e){say(errorText(e),'error')}finally{busy=false}
+ }catch(e){if(nonce===refreshNonce){$('stages').replaceChildren();$('scoreRows').replaceChildren();say(errorText(e),'error')}}finally{busy=false;if(pendingRefresh||nonce!==refreshNonce){pendingRefresh=false;loadTeacher()}}
 }
 $('sessionSelect').onchange=()=>{
- if(actionBusy)return;
+ if(actionBusy){$('sessionSelect').value=teacherSession;return}
  teacherSession=$('sessionSelect').value;
  sessionStorage.setItem(SESSION_KEY,teacherSession);
  refreshNonce++;
  $('sessionName').textContent='切換中…';
  $('stages').replaceChildren();$('scoreRows').replaceChildren();
+ $('sessionSelect').blur();
  loadTeacher();
 };
-$('login').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){say(errorText(error),'error');return}teacherSession=null;sessionStorage.removeItem(SESSION_KEY);say('教師已登入','good');loadTeacher()};
-$('logout').onclick=async()=>{await sb.auth.signOut();teacherSession=null;teacherTitle='';sessionStorage.removeItem(SESSION_KEY);$('control').classList.add('hide');$('scores').classList.add('hide');say('已登出')};
+$('login').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){say(errorText(error),'error');return}refreshNonce++;teacherSession=null;sessionStorage.removeItem(SESSION_KEY);say('教師已登入','good');loadTeacher()};
+$('logout').onclick=async()=>{if(actionBusy)return;refreshNonce++;teacherSession=null;teacherTitle='';sessionStorage.removeItem(SESSION_KEY);$('control').classList.add('hide');$('scores').classList.add('hide');$('stages').replaceChildren();$('scoreRows').replaceChildren();await sb.auth.signOut();say('已登出')};
 loadTeacher();setInterval(()=>{if(!document.hidden)loadTeacher()},4000);
