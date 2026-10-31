@@ -1,0 +1,1 @@
+window.TBL_CONFIG={url:"https://cpvbpasrkcqdsxzsidwm.supabase.co",key:"sb_publishable_a7q0fkKKmwB8oQWAEEeoBg_4Y53wmf-"};
