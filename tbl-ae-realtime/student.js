@@ -38,9 +38,10 @@ async function loadStudent(){
   for(const stage of rows.filter(row=>row.session_id===session)){
    const box=document.createElement('div');box.className='stage';
    const title=document.createElement('strong');title.textContent='Stage '+stage.stage_number+'｜'+(stage.is_revealed?'已公布':stage.is_locked?'已鎖定':stage.is_open?'可作答':'尚未開放');box.append(title);
-   const detail=document.createElement('div');detail.textContent=stage.my_answer?'已提交（可在鎖定前修改）':'尚未提交';
-   if(stage.is_locked)detail.textContent='本階段已鎖定';
-   if(stage.is_revealed)detail.textContent='本階段分數已公布，可到成績頁查看';box.append(detail);
+   const submitted=stage.my_answer?'本組已提交：'+stage.my_answer:'本組尚未提交';
+   const detail=document.createElement('div');detail.textContent=submitted+(stage.my_answer?'｜鎖定前可修改':'');
+   if(stage.is_locked)detail.textContent=submitted+'｜本階段已鎖定，不能修改';
+   if(stage.is_revealed)detail.textContent=submitted+'｜本階段分數已公布，可到成績頁查看';box.append(detail);
    if(stage.is_open&&!stage.is_locked&&!stage.is_revealed){
     const choices=document.createElement('div');choices.className='choices';let selected=stage.my_answer||null;
     for(const answer of 'ABCDE'){
