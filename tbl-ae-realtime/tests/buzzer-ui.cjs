@@ -57,6 +57,12 @@ const flush=async()=>{for(let i=0;i<10;i++)await new Promise(resolve=>setImmedia
  save.onclick();await flush();
  const scored=calls.find(c=>c[0]==='tbl_teacher_buzzer');
  assert.equal(scored[1].p_session_id,'TEST');assert.equal(scored[1].p_expected_points,0);assert.equal(scored[1].p_points,5);
+ assert.equal(scored[1].p_reason,'答對','custom reason is preserved');
+ input.value='7';reason.value='   ';save.onclick();await flush();
+ const defaultScored=calls.filter(c=>c[0]==='tbl_teacher_buzzer').at(-1);
+ assert.equal(defaultScored[1].p_points,7);assert.equal(defaultScored[1].p_reason,'教師判分','blank reason still submits auditable score');
+ const validCount=calls.length;input.value='-1';save.onclick();await flush();assert.equal(calls.length,validCount,'invalid score still blocked');
+ input.value='7';reason.value='更正';
  context.teacherSession='FORMAL';vm.runInContext('clearTeacherBuzzer()',context);
  const before=calls.length;save.onclick();await flush();assert.equal(calls.length,before,'old scoring controls cannot modify another session');
  assert.equal($('buzzerHistory').children.length,0);

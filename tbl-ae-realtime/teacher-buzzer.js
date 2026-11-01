@@ -12,7 +12,7 @@ async function teacherBuzzerAction(action,round=null,points=null,reason=null,exp
  actionBusy=true;refreshNonce++;$('sessionSelect').disabled=true;buzzerNonce++;
  try{
   await rpc('tbl_teacher_buzzer',{p_session_id:target,p_action:action,p_round_id:round?.id||null,p_points:points,p_reason:reason,p_expected_points:round?.points??null});
-  say('已更新「'+name+'」搶答。','good');
+  say(action==='score'?'已儲存「'+name+'」第 '+round.round_number+' 輪：'+round.winner_name+'，本輪 '+points+' 分。':'已更新「'+name+'」搶答。','good');
  }catch(error){say(errorText(error),'error')}
  finally{actionBusy=false;$('sessionSelect').disabled=false;await loadTeacherBuzzer()}
 }
@@ -40,11 +40,11 @@ async function loadTeacherBuzzer(){
     const label=document.createElement('p');label.textContent='第 '+round.round_number+' 輪｜'+(round.winner_name||'無得主')+'｜'+round.points+' 分'+(round.state==='open'?'｜搶答中':'');row.append(label);
     if(round.winner_team_id){
      const input=document.createElement('input');input.type='number';input.min='0';input.max='100';input.step='1';input.value=String(round.points);input.setAttribute('aria-label','第 '+round.round_number+' 輪分數');
-     const reason=document.createElement('input');reason.maxLength=500;reason.placeholder='判分／更正原因';reason.setAttribute('aria-label','第 '+round.round_number+' 輪判分原因');
+     const reason=document.createElement('input');reason.maxLength=500;reason.placeholder='原因（選填，留白記為教師判分）';reason.setAttribute('aria-label','第 '+round.round_number+' 輪判分原因（選填）');
      const save=document.createElement('button');save.textContent='設定分數';
      save.onclick=()=>{
-      const points=Number(input.value),text=reason.value.trim();
-      if(!input.value.trim()||!Number.isInteger(points)||points<0||points>100||!text||text.length>500){say('請填入 0–100 整數分數及判分原因。','error');return}
+      const points=Number(input.value),text=reason.value.trim()||'教師判分';
+      if(!input.value.trim()||!Number.isInteger(points)||points<0||points>100||text.length>500){say('請填入 0–100 整數分數；原因可留白，最多 500 字。','error');return}
       teacherBuzzerAction('score',round,points,text,target);
      };row.append(input,reason,save);
     }

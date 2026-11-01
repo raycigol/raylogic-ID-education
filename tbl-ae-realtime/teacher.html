@@ -55,7 +55,7 @@
 <div class="line"><button id="refreshBuzzer" class="secondary">重新整理</button><button id="startBuzzer" disabled>開啟新一輪</button><button id="closeBuzzer" class="secondary" disabled>結束本輪</button></div>
 <p id="buzzerStatus" role="status" aria-live="polite">選擇課堂後，按「重新整理」。</p>
 <h3>搶答積分</h3><div id="buzzerTotals" class="buzzer-totals"></div>
-<h3>最近 30 輪／手動判分</h3><p class="muted">設定該輪最終分數（0–100），不是累加。答錯可維持 0 分；如要再搶，請開新一輪。重置課堂會封存搶答紀錄並將積分歸零。</p><div id="buzzerHistory"></div>
+<h3>最近 30 輪／手動判分</h3><p class="muted">設定該輪最終分數（0–100），不是累加。原因選填，留白會自動記為「教師判分」。答錯可維持 0 分；如要再搶，請開新一輪。重置課堂會封存搶答紀錄並將積分歸零。</p><div id="buzzerHistory"></div>
 <details><summary>判分與更正紀錄（最近 100 筆）</summary><div id="buzzerLog"></div></details>
 </section>
 </div>
@@ -79,6 +79,6 @@
 <script src="teacher-export.js?v=20261101-csv"></script>
 <script src="join-codes.js?v=20261101-short"></script><script src="vendor/qrcode.js"></script>
 <script src="teacher-join-codes.js?v=20261101-short"></script><script src="teacher-representatives.js?v=20261101-reps"></script><script src="teacher-answer-review.js?v=20261101-archive"></script><script src="teacher.js?v=20261101-buzzer"></script>
-<script src="teacher-buzzer.js?v=20261101-buzzer"></script>
+<script src="teacher-buzzer.js?v=20261101-score-optional-reason"></script>
 </body>
 </html>
