@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TBL AE 教師控制台</title>
 <link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="teacher-layout.css?v=20261101-archive">
+<link rel="stylesheet" href="teacher-layout.css?v=20261101-buzzer">
+<link rel="stylesheet" href="buzzer.css?v=20261101-buzzer">
 </head>
 <body>
 <header><h1>TBL AE｜教師控制台</h1><p>選擇課堂，再選擇要使用的功能</p></header>
@@ -25,6 +26,7 @@
 <button type="button" id="tab-course" role="tab" aria-controls="panel-course" aria-selected="true" data-teacher-tab="course">課程控制</button>
 <button type="button" id="tab-codes" role="tab" aria-controls="panel-codes" aria-selected="false" tabindex="-1" data-teacher-tab="codes">加入碼與 QR</button>
 <button type="button" id="tab-members" role="tab" aria-controls="panel-members" aria-selected="false" tabindex="-1" data-teacher-tab="members">組別代表</button>
+<button type="button" id="tab-buzzer" role="tab" aria-controls="panel-buzzer" aria-selected="false" tabindex="-1" data-teacher-tab="buzzer">課堂搶答</button>
 </div>
 </div>
 <section id="panel-course" class="teacher-panel" role="tabpanel" aria-labelledby="tab-course" tabindex="0" data-teacher-panel="course">
@@ -35,7 +37,7 @@
 <details class="card"><summary>單組答案撤回與更正紀錄</summary><p class="muted">僅撤回未鎖定、未公布階段的指定組別答案。請先確認錯誤代表已解除；更正紀錄保留原答案與原因；課堂重置後移入歷史封存，本次紀錄清空。</p><button id="loadAnswerReview" class="secondary">載入答案與更正紀錄</button><p id="answerReviewName" class="panel-context"></p><div id="answerReview"></div><h3>本次課堂更正紀錄（最近 100 筆）</h3><div id="answerHistory"></div><details><summary>歷史封存紀錄（最近 100 筆）</summary><div id="archivedAnswerHistory"></div></details></details>
 <section class="card hide" id="scores"><div class="panel-heading"><div><h2>已公布分數</h2><p class="muted">只匯出目前所選課堂的已公布分數，未公布欄位留白；CSV 可用 Excel 開啟。</p></div><button id="exportScores" class="secondary">匯出成績 CSV</button></div><div class="scroll"><table><thead><tr><th>組別</th><th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>累計</th><th>排名</th></tr></thead><tbody id="scoreRows"></tbody></table></div></section>
 <details class="card reset-area"><summary>課後重置設定</summary>
-<p class="muted">只重置目前所選課堂。永久清除答案與分數，保留組別與加入代碼；請先另存成績。</p>
+<p class="muted">只重置目前所選課堂。永久清除答案與分數，保留組別與加入代碼；搶答紀錄封存、積分歸零。請先另存成績。</p>
 <label class="reset-option"><input id="clearMembers" type="checkbox">重置時同時解除本課堂全部代表（預設不勾選）</label>
 <button id="resetSession" class="secondary">重置本課堂（清除答案與分數）</button>
 </details>
@@ -47,6 +49,14 @@
 <section id="panel-members" class="teacher-panel card" role="tabpanel" aria-labelledby="tab-members" tabindex="0" data-teacher-panel="members" hidden>
 <div class="panel-heading"><div><h2>組別代表管理</h2><p class="muted">顯示已綁定代表，不表示目前在線。解除只移除操作資格，答案與分數保留；持有有效代碼者仍可重新加入。</p></div><button id="loadRepresentatives">重新整理代表狀態</button></div>
 <p id="representativesName" class="panel-context"></p><div id="representatives"></div>
+</section>
+<section id="panel-buzzer" class="teacher-panel card" role="tabpanel" aria-labelledby="tab-buzzer" tabindex="0" data-teacher-panel="buzzer" hidden>
+<h2>課堂搶答</h2><p class="muted">每輪只有第一個抵達伺服器的有效搶答取得回答權。教師手動設定得主分數；積分與四階段成績分開。網路延遲可能影響先後。</p>
+<div class="line"><button id="refreshBuzzer" class="secondary">重新整理</button><button id="startBuzzer" disabled>開啟新一輪</button><button id="closeBuzzer" class="secondary" disabled>結束本輪</button></div>
+<p id="buzzerStatus" role="status" aria-live="polite">選擇課堂後，按「重新整理」。</p>
+<h3>搶答積分</h3><div id="buzzerTotals" class="buzzer-totals"></div>
+<h3>最近 30 輪／手動判分</h3><p class="muted">設定該輪最終分數（0–100），不是累加。答錯可維持 0 分；如要再搶，請開新一輪。重置課堂會封存搶答紀錄並將積分歸零。</p><div id="buzzerHistory"></div>
+<details><summary>判分與更正紀錄（最近 100 筆）</summary><div id="buzzerLog"></div></details>
 </section>
 </div>
 </main>
@@ -68,6 +78,7 @@
 <script src="teacher-confirmation.js?v=20261101-confirm"></script>
 <script src="teacher-export.js?v=20261101-csv"></script>
 <script src="join-codes.js?v=20261101-short"></script><script src="vendor/qrcode.js"></script>
-<script src="teacher-join-codes.js?v=20261101-short"></script><script src="teacher-representatives.js?v=20261101-reps"></script><script src="teacher-answer-review.js?v=20261101-archive"></script><script src="teacher.js?v=20261101-archive"></script>
+<script src="teacher-join-codes.js?v=20261101-short"></script><script src="teacher-representatives.js?v=20261101-reps"></script><script src="teacher-answer-review.js?v=20261101-archive"></script><script src="teacher.js?v=20261101-buzzer"></script>
+<script src="teacher-buzzer.js?v=20261101-buzzer"></script>
 </body>
 </html>

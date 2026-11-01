@@ -1,0 +1,8 @@
+#buzzButton{display:block;width:100%;min-height:100px;font-size:2rem;margin:16px 0;touch-action:manipulation}
+#studentBuzzer{border-bottom:1px solid #ccd7e2;padding-bottom:20px;margin-bottom:24px}
+.buzzer-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.buzzer-totals p{margin:0;padding:10px;background:#eef5fa;border-radius:8px}
+#buzzerHistory .stage{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+#buzzerHistory .stage p{flex:1 1 100%;margin:0}
+#buzzerHistory input[type=number]{width:100px}
+#buzzerHistory input:not([type=number]){flex:1 1 180px;min-width:0}
