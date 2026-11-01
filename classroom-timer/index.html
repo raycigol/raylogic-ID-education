@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111a24"><title>課堂計時｜iRAT・tRAT</title>
+<link rel="stylesheet" href="timer.css?v=20261102">
+</head>
+<body>
+<div class="shell">
+<header class="topbar">
+ <a class="brand" href="../tbl-ae-realtime/">TBL<span>／課堂計時</span></a>
+ <div class="mode-tabs" role="group" aria-label="顯示模式"><button id="countdownMode" aria-pressed="true">倒數計時</button><button id="clockMode" aria-pressed="false">現在時間</button></div>
+ <button id="fullscreen" class="quiet">全螢幕 ↗</button>
+</header>
+<main>
+ <section class="display" aria-label="投影時間">
+  <div class="display-top"><div><span class="eyebrow">CLASSROOM TIMER</span><h1 id="phaseTitle">iRAT <span>個人作答</span></h1></div><div class="live-clock"><span id="clockLabel">台北時間</span><time id="smallClock">--:--:--</time></div></div>
+  <div class="time-area">
+   <p id="status" class="status" role="status">準備開始</p>
+   <div id="digits" class="digits" role="timer" aria-live="off" aria-label="剩餘時間">10:00</div>
+   <p id="timeHint" class="time-hint">準備好後，按下開始計時</p>
+  </div>
+  <div id="progressTrack" class="progress-track" role="progressbar" aria-label="剩餘時間比例" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="progress"></div></div>
+  <div id="timerControls" class="timer-controls"><button id="startPause" class="primary">開始計時</button><button id="reset" class="secondary">重設</button><span class="divider"></span><button id="minusMinute" class="quiet" aria-label="減少一分鐘">−1 分鐘</button><button id="plusMinute" class="quiet" aria-label="增加一分鐘">＋1 分鐘</button></div>
+  <div class="display-bottom"><span id="displayNote">個人思考，獨立作答。</span><button id="projection" class="quiet" aria-pressed="false">專注投影</button></div>
+ </section>
+ <aside id="settings" class="settings" aria-label="計時設定">
+  <div class="settings-heading"><span class="eyebrow">SETUP</span><h2>這一階段的時間</h2><p>選擇階段，再設定作答時間。</p></div>
+  <div class="phase-buttons" role="group" aria-label="作答階段"><button id="irat" aria-pressed="true"><strong>iRAT</strong><span>個人作答</span><small>快捷 10 分鐘</small></button><button id="trat" aria-pressed="false"><strong>tRAT</strong><span>小組作答</span><small>快捷 15 分鐘</small></button></div>
+  <form id="durationForm"><div class="duration-fields"><label for="minutes">分鐘<input id="minutes" type="number" inputmode="numeric" min="0" max="5999" step="1" value="10" required></label><span>:</span><label for="seconds">秒<input id="seconds" type="number" inputmode="numeric" min="0" max="59" step="1" value="0" required></label></div><button class="secondary apply" type="submit">套用時間</button></form>
+  <p id="feedback" class="feedback" role="status"></p>
+  <label class="sound-option"><input id="sound" type="checkbox">時間到時播放提示音</label>
+  <p class="settings-note">最後 1 分鐘會變色提醒；時間到停在 00:00，顯示「時間到」。提示音需裝置音量開啟。</p>
+  <details><summary>操作小提示</summary><p>空白鍵：開始／暫停<br>R：重設　F：全螢幕<br>切換到現在時間時，倒數仍會繼續。</p><p>計時保存在目前分頁，重新整理可接續；不會同步到學生手機。現在時間依裝置時鐘，以台北時區顯示。</p></details>
+ </aside>
+</main>
+<footer>給課堂一個清楚的節奏。<span>iRAT / tRAT · 無需登入</span></footer>
+</div>
+<script src="timer-core.js?v=20261102"></script><script src="timer.js?v=20261102"></script>
+</body>
+</html>
