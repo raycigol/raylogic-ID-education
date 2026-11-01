@@ -1,6 +1,6 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 class Element{
- constructor(){this.children=[];this.textContent='';this.value='';this.dataset={};this.hidden=false;this.disabled=false;this.classList={add(){},remove(){}}}
+ constructor(){this.children=[];this.textContent='';this.value='';this.dataset={};this.hidden=false;this.disabled=false;const classes=new Set();this.classList={add:name=>classes.add(name),remove:name=>classes.delete(name),contains:name=>classes.has(name)}}
  replaceChildren(){this.children=[]}append(...nodes){this.children.push(...nodes)}
  setAttribute(){}addEventListener(){}
 }
@@ -21,11 +21,26 @@ const flush=async()=>{for(let i=0;i<10;i++)await new Promise(resolve=>setImmedia
   }
  });
  vm.runInContext(fs.readFileSync(path.join(root,'student-buzzer.js'),'utf8'),context);
- await vm.runInContext('loadStudentBuzzer()',context);assert.equal($('buzzButton').disabled,false);
+ data.rounds=[];await vm.runInContext('loadStudentBuzzer()',context);
+ assert.equal($('studentBuzzer').classList.contains('hide'),true,'unused buzzer stays hidden');
+ assert.equal($('buzzButton').disabled,true);
+ data.rounds=[round];await vm.runInContext('loadStudentBuzzer()',context);assert.equal($('buzzButton').disabled,false);
+ assert.equal($('studentBuzzer').classList.contains('hide'),false,'teacher opening a round reveals buzzer');
  const staleBuzz=$('buzzButton').onclick;
  await staleBuzz();await flush();assert.equal($('buzzButton').disabled,true);
  assert.match($('studentBuzzerStatus').textContent,/本組取得回答權/);
+ assert.equal($('studentBuzzer').classList.contains('hide'),false,'winner feedback remains until teacher closes round');
  assert.equal(calls.find(c=>c[0]==='tbl_student_buzz')[1].p_round_id,'R1');
+ const claimed=data.rounds[0];
+ data.rounds=[{...claimed,state:'closed'}];await vm.runInContext('loadStudentBuzzer()',context);
+ assert.equal($('studentBuzzer').classList.contains('hide'),true,'teacher closing round hides entire buzzer');
+ assert.equal($('studentBuzzerTotals').children.length,0);
+ const closedCount=calls.length;await staleBuzz();assert.equal(calls.length,closedCount,'hidden old button cannot submit');
+ data.rounds=[{...round,id:'R2'}];await vm.runInContext('loadStudentBuzzer()',context);
+ assert.equal($('studentBuzzer').classList.contains('hide'),false,'next round reveals buzzer again');
+ data.rounds=[];await vm.runInContext('loadStudentBuzzer()',context);
+ assert.equal($('studentBuzzer').classList.contains('hide'),true,'reset removes buzzer');
+ data.rounds=[claimed];
  context.mySession='FORMAL';const count=calls.length;await staleBuzz();assert.equal(calls.length,count,'stale student button never submits to another class');
  let release;hold=new Promise(resolve=>release=resolve);
  const loading=vm.runInContext('loadStudentBuzzer()',context);await flush();

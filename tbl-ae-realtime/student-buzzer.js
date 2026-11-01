@@ -10,7 +10,9 @@ async function loadStudentBuzzer(){
  try{
   const data=await rpc('tbl_buzzer_status',{p_session_id:session});
   if(nonce!==studentBuzzerNonce||session!==mySession||membershipNonce!==studentNonce)return;
-  const round=data.rounds[0];studentBuzzerRound=round?.id||null;
+  const round=data.rounds[0];
+  if(!round||!['open','claimed'].includes(round.state)){clearStudentBuzzer();return}
+  studentBuzzerRound=round.id;
   $('studentBuzzer').classList.remove('hide');
   $('studentBuzzerStatus').textContent=!round?'教師尚未開啟搶答':('第 '+round.round_number+' 輪｜'+(round.winner_team_id?(round.winner_team_id===data.my_team_id?'本組取得回答權！':'回答權：'+round.winner_name):round.state==='open'?'搶答開放中':'本輪已結束')+'｜本輪 '+round.points+' 分');
   $('buzzButton').disabled=!round||round.state!=='open';
