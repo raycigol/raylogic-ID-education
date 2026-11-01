@@ -7,11 +7,13 @@ class Element{
  blur(){document.activeElement=null}
 }
 const nodes=new Map(),document={activeElement:null,hidden:false,createElement:()=>new Element()};
+function clearJoinCodes(){for(const id of ['joinCodes','joinCodesName'])if(nodes.has(id))nodes.get(id).replaceChildren()}
 const sessions=[{id:'0f82561e-c980-44cb-8a5d-091dbc9c71e6',title:'2026 ID Block TBL — TEST'},{id:'live',title:'正式課堂'}],calls=[],storage=new Map();
 let releaseStages=null,hold=false;
 const context=vm.createContext({document,console,confirm:()=>true,setInterval:()=>{},sessionStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},$:id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id)},say:()=>{},errorText:error=>error.message,showScores:records=>calls.push(['scores',records]),rpc:async(name,args)=>{calls.push([name,args]);return []},sb:{auth:{getUser:async()=>({data:{user:{id:'teacher'}}}),signOut:async()=>{}},from:table=>{let target;const query={select:()=>query,eq:(key,value)=>{target=value;return query},order:()=>query,then:resolve=>{calls.push([table,target]);const result={data:table==='tbl_sessions'?sessions:table==='tbl_stages'?[{stage_number:1,is_open:false,is_locked:false,is_revealed:false}]:[]};if(hold&&table==='tbl_stages'){hold=false;return new Promise(done=>{releaseStages=()=>{resolve(result);done()}})}return Promise.resolve(resolve(result))}};return query}}});
 const flush=async()=>{for(let count=0;count<30;count++)await new Promise(resolve=>setImmediate(resolve))};
 (async()=>{
+ context.clearJoinCodes=clearJoinCodes;
  vm.runInContext(fs.readFileSync(process.argv[2]||__dirname+'/../teacher.js','utf8'),context);await flush();
  const selector=nodes.get('sessionSelect'),initial=selector.children[0],rebuilds=selector.rebuilds;
  await vm.runInContext('loadTeacher()',context);assert.equal(selector.rebuilds,rebuilds);assert.equal(selector.children[0],initial);

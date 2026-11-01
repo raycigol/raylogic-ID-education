@@ -19,6 +19,7 @@ async function loadTeacher(){
   const preferred=teacherSession||sessionStorage.getItem(SESSION_KEY);
   const selected=ss.find(x=>x.id===preferred)||(!preferred&&(ss.find(x=>x.title==='2026 ID Block TBL — TEST')||ss[0]));
   if(!selected){$('stages').replaceChildren();$('scoreRows').replaceChildren();throw new Error('目前課堂已不存在或無讀取權限，請重新登入並確認課堂權限。')}
+  if(teacherSession!==selected.id)clearJoinCodes();
   teacherSession=selected.id;teacherTitle=selected.title;
   const options=ss.map(s=>({value:s.id,text:s.title+(s.title.includes('TEST')?'（測試）':'（正式）')}));
   if(selector.options.length!==options.length||options.some((item,index)=>selector.options[index].value!==item.value||selector.options[index].textContent!==item.text)){
@@ -92,6 +93,7 @@ async function loadTeacher(){
 $('sessionSelect').onchange=()=>{
  if(actionBusy){$('sessionSelect').value=teacherSession;return}
  teacherSession=$('sessionSelect').value;
+ clearJoinCodes();
  sessionStorage.setItem(SESSION_KEY,teacherSession);
  refreshNonce++;
  $('sessionName').textContent='切換中…';
@@ -100,5 +102,5 @@ $('sessionSelect').onchange=()=>{
  loadTeacher();
 };
 $('login').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){say(errorText(error),'error');return}refreshNonce++;teacherSession=null;sessionStorage.removeItem(SESSION_KEY);say('教師已登入','good');loadTeacher()};
-$('logout').onclick=async()=>{if(actionBusy)return;refreshNonce++;teacherSession=null;teacherTitle='';sessionStorage.removeItem(SESSION_KEY);$('control').classList.add('hide');$('scores').classList.add('hide');$('stages').replaceChildren();$('scoreRows').replaceChildren();await sb.auth.signOut();say('已登出')};
+$('logout').onclick=async()=>{if(actionBusy)return;refreshNonce++;teacherSession=null;teacherTitle='';clearJoinCodes();sessionStorage.removeItem(SESSION_KEY);$('control').classList.add('hide');$('scores').classList.add('hide');$('stages').replaceChildren();$('scoreRows').replaceChildren();await sb.auth.signOut();say('已登出')};
 loadTeacher();setInterval(()=>{if(!document.hidden)loadTeacher()},4000);

@@ -1,4 +1,9 @@
 let mySession=null,refreshing=false,studentBusy=false,studentNonce=0;
+let scannedCode=prefilledJoinCode();
+if(scannedCode){
+ $('joinCode').value=scannedCode;
+ window.history.replaceState(null,'',window.location.pathname+window.location.search);
+}
 function clearStudent(){
  mySession=null;$('work').classList.add('hide');$('join').classList.remove('hide');
  $('stageList').replaceChildren();$('teamName').textContent='';
@@ -22,9 +27,12 @@ async function loadStudent(){
   const rows=await rpc('tbl_student_status',{});
   if(nonce!==studentNonce)return;
   if(!rows?.length){clearStudent();return}
-  mySession=rows[0].session_id;
-  const session=mySession,name=rows[0].team_name;
-  $('join').classList.add('hide');$('work').classList.remove('hide');$('teamName').textContent=name;
+  const preferred=sessionStorage.getItem(STUDENT_SESSION_KEY);
+  const current=preferred?rows.find(row=>row.session_id===preferred):rows[0];
+  if(!current){clearStudent();say('找不到目前選擇的課堂，請離開組別並重新加入。','error');return}
+  mySession=current.session_id;
+  const session=mySession,name=current.team_name,title=sessionStorage.getItem(STUDENT_TITLE_KEY)||'';
+  $('join').classList.add('hide');$('work').classList.remove('hide');$('teamName').textContent=(title?title+'｜':'')+name;
   const area=$('stageList');area.replaceChildren();
   for(const stage of rows.filter(row=>row.session_id===session)){
    const box=document.createElement('div');box.className='stage';
@@ -53,15 +61,21 @@ async function loadStudent(){
    }
    area.append(box);
   }
-  say('已加入 '+name+'。請先確認組別，錯誤時按「離開組別／重新加入」。','good');
+  say('已加入 '+name+'。'+(scannedCode?'掃碼不會自動切換組別；如要改組，請先離開組別。':'請先確認組別，錯誤時按「離開組別／重新加入」。'),'good');
  }catch(error){say(errorText(error),'error')}finally{refreshing=false}
 }
 $('joinBtn').onclick=async()=>{
  if(studentBusy)return;
- const code=$('joinCode').value.trim();
- if(!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(code)){say('請輸入完整 UUID 組別代碼','error');return}
+ const code=normalizeJoinCode($('joinCode').value);
+ if(!validJoinCode(code)){say('請輸入 6 碼加入碼或完整 UUID 代碼。','error');return}
  studentBusy=true;$('joinBtn').disabled=true;
- try{await ensureAuth();await rpc('tbl_join_team',{p_join_code:code});studentNonce++;clearStudent();say('加入成功，請確認組別名稱。','good')}
+ try{
+  await ensureAuth();
+  const result=await rpc('tbl_join_with_code',{p_code:code});
+  if(!result?.ok)throw new Error(result?.message||'加入失敗，請確認代碼。');
+  sessionStorage.setItem(STUDENT_SESSION_KEY,result.session_id);sessionStorage.setItem(STUDENT_TITLE_KEY,result.title);
+  scannedCode='';studentNonce++;clearStudent();say('已加入「'+result.title+'」'+result.team_name+'，請確認組別。','good');
+ }
  catch(error){say(errorText(error),'error')}
  finally{studentBusy=false;$('joinBtn').disabled=false;loadStudent()}
 };
@@ -76,6 +90,7 @@ $('leaveBtn').onclick=async()=>{
   const {error:signOutError}=await sb.auth.signOut({scope:'local'});
   if(signOutError)throw signOutError;
   $('joinCode').value='';say('已離開，請輸入正確組別代碼。原組答案保留。','good');
+  sessionStorage.removeItem(STUDENT_SESSION_KEY);sessionStorage.removeItem(STUDENT_TITLE_KEY);scannedCode='';
  }catch(error){say(errorText(error),'error')}
  finally{studentBusy=false;$('leaveBtn').disabled=false}
 };
