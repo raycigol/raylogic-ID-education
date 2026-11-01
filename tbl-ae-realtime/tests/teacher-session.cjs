@@ -15,6 +15,7 @@ const flush=async()=>{for(let count=0;count<30;count++)await new Promise(resolve
 (async()=>{
  context.clearJoinCodes=clearJoinCodes;
  context.clearRepresentatives=()=>{if(nodes.has('clearMembers'))nodes.get('clearMembers').checked=false};
+ context.clearAnswerReview=()=>{};
  vm.runInContext(fs.readFileSync(process.argv[2]||__dirname+'/../teacher.js','utf8'),context);await flush();
  const selector=nodes.get('sessionSelect'),initial=selector.children[0],rebuilds=selector.rebuilds;
  await vm.runInContext('loadTeacher()',context);assert.equal(selector.rebuilds,rebuilds);assert.equal(selector.children[0],initial);

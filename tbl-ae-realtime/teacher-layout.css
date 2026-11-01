@@ -32,6 +32,9 @@ summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:40px}
 .join-code-grid button{margin-top:auto;width:100%}
 #representatives .stage{padding:16px;align-items:center;gap:12px}
 #representatives .stage>div{flex:1 1 300px;line-height:1.7;overflow-wrap:anywhere}
+#answerReview .stage{align-items:center}
+#answerReview .stage>div,#answerHistory .stage>div{flex:1 1 320px;min-width:0;line-height:1.7;overflow-wrap:anywhere}
+#answerHistory .stage{background:#f8fafc}
 .reset-area{border-color:#dfc6ba;background:#fffaf6}
 .reset-option{display:flex;align-items:flex-start;gap:10px;line-height:1.65;margin:16px 0}
 .reset-option input{width:auto;flex:0 0 auto;margin-top:5px}
@@ -46,6 +49,7 @@ summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:40px}
  .panel-heading>button{width:100%}
  #stages{grid-template-columns:1fr}
  #representatives .stage>button{flex:1 1 100%}
+ #answerReview .stage>button{flex:1 1 100%}
 }
 @media print{
  .workspace-header{position:static}
