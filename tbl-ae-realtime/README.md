@@ -62,8 +62,9 @@
 - 確認視窗列出課堂、組別、Stage、原答案及提交時間；在同一視窗填寫 1–500 字原因，輸入「撤回」兩字再確認。前後或中間的空白自動忽略。若學生已更新答案或重新提交，舊畫面不能撤回新答案，必須重新載入。
 - 若是錯誤代表誤送，先在「組別代表」解除錯誤代表，再撤回受影響答案，讓正確代表加入。撤回答案本身不會解除代表。
 - 伺服器核對教師、課堂、組別、完整提交快照與階段狀態，鎖住階段及該提交後，在同一交易內寫入更正紀錄並刪除答案；失敗時一併回滾。
-- `tbl_answer_corrections` 保存完整原提交（含原提交者、時間）、課堂與組別名稱、原因、撤回教師及時間；前端無直接讀寫權限，只能由所屬教師的檢閱函式取得。課堂重置不清除更正紀錄，介面顯示最近 100 筆。
-- 新環境執行 `sql/withdraw-answer.sql`。安裝不撤回任何答案；鎖定、公布或已有分數時均禁止撤回。
-- 前端測試：`node tbl-ae-realtime/tests/answer-review.cjs`。資料庫回歸測試：在 Supabase SQL Editor 執行 `tests/withdraw-answer.sql`，只使用指定 TEST fixture，建立臨時測試資料後完整回滾；比較其他組、其他階段及正式課堂未變，並驗證更正紀錄與重新提交。
+- `tbl_answer_corrections` 保存完整原提交（含原提交者、時間）、課堂與組別名稱、原因、撤回教師及時間；前端無直接讀寫權限，只能由所屬教師的檢閱函式取得。課堂重置將本次紀錄封存，畫面「本次課堂更正紀錄」清空，舊資料可在「歷史封存紀錄」查看；兩區各顯示最近 100 筆。
+- 新環境先依序安裝原有 reset-session、short-join-codes、representatives、withdraw-answer SQL，最後執行 `sql/archive-corrections.sql`，使原有重置入口及代表重置入口都套用封存行為。重跑舊的 reset-session SQL 後也須重跑 archive-corrections。安裝本身不重置課堂、不封存既有紀錄；既有紀錄於下一次所屬教師確認重置時封存。
+- 封存與答案、分數清除在同一交易完成，只處理所選課堂。重置僅填入尚未封存紀錄的 archived_at，保留所有原始內容，重複重置不改寫舊封存時間。新撤回紀錄預設 archived_at 為空，列入本次課堂。
+- 前端測試：`node tbl-ae-realtime/tests/answer-review.cjs`。資料庫回歸測試：在 Supabase SQL Editor 執行 `tests/withdraw-answer.sql`，只使用指定 TEST fixture，建立臨時測試資料後完整回滾；比較其他組、其他階段及正式課堂未變，並驗證更正紀錄、重新提交、封存、新課堂分離與重複重置。
 - 確認視窗開啟時暫停刷新並鎖住課堂選擇；取消或按 Escape 不會操作資料。前端用已顯示的完整名稱產生原有 API 確認參數，沒有放寬後端的課堂、組別、階段與提交快照檢查。視窗測試：`node tbl-ae-realtime/tests/confirmation.cjs`。
 - 測試：`node tbl-ae-realtime/tests/join-codes.cjs`、`node tbl-ae-realtime/tests/scores-session.cjs`，以及前述學生／教師回歸測試。資料庫已以 TEST 回滾驗證加入、輪替、失效碼、嘗試限制與正式課堂隔離。

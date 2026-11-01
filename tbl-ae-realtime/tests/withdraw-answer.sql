@@ -13,7 +13,7 @@ do $v$
 declare
  v_all jsonb:=pg_temp.withdraw_snapshot(false);v_protected jsonb:=pg_temp.withdraw_snapshot(true);
  v_team uuid;v_other uuid;v_formal uuid;v_owner uuid;v_student uuid;v_name text;
- v_original jsonb;v_expected jsonb;v_others jsonb;v_audit uuid;v_before integer;
+ v_original jsonb;v_expected jsonb;v_others jsonb;v_audit uuid;v_before integer;v_second_audit uuid;v_archive_at timestamptz;v_review jsonb;
  v_case integer;v_denied boolean;v_error text;v_title text;v_confirm text;v_reason text;v_target uuid;v_stage integer;
 begin
  if not exists(select 1 from public.tbl_sessions where id='0f82561e-c980-44cb-8a5d-091dbc9c71e6' and title='2026 ID Block TBL — TEST') then raise exception 'TEST fixture missing';end if;
@@ -72,8 +72,22 @@ begin
   exception when others then if sqlerrm='Submission changed; refresh the list before withdrawing' then v_denied:=true;else raise;end if;end;
   if not v_denied then raise exception 'Old screen withdrew resubmitted answer';end if;
   perform public.tbl_teacher_reset_with_members('0f82561e-c980-44cb-8a5d-091dbc9c71e6','2026 ID Block TBL — TEST',false);
-  if not exists(select 1 from jsonb_array_elements(public.tbl_teacher_answer_review('0f82561e-c980-44cb-8a5d-091dbc9c71e6')->'history') history where history->>'id'=v_audit::text) then raise exception 'Reset erased audit history';end if;
+  v_review:=public.tbl_teacher_answer_review('0f82561e-c980-44cb-8a5d-091dbc9c71e6');
+  if jsonb_array_length(v_review->'history')<>0 or not exists(select 1 from jsonb_array_elements(v_review->'archived_history') history where history->>'id'=v_audit::text) then raise exception 'Reset did not archive and clear current history';end if;
   perform set_config('role','none',true);
+  select archived_at into v_archive_at from public.tbl_answer_corrections where id=v_audit;
+  if v_archive_at is null or not exists(select 1 from public.tbl_answer_corrections where id=v_audit and original_submission=v_original and withdrawn_by=v_owner and reason='QA 誤加入別組') then raise exception 'Archived original audit changed';end if;
+  update public.tbl_stages set is_open=true where session_id='0f82561e-c980-44cb-8a5d-091dbc9c71e6' and stage_number=1;
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_student,'is_anonymous',true)::text,true);perform set_config('role','authenticated',true);
+  perform public.tbl_submit_answer('0f82561e-c980-44cb-8a5d-091dbc9c71e6',1,'C');
+  perform set_config('role','none',true);select to_jsonb(sub) into v_expected from public.tbl_submissions sub where team_id=v_team and stage_number=1;
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_owner,'is_anonymous',false)::text,true);perform set_config('role','authenticated',true);
+  v_second_audit:=public.tbl_teacher_withdraw_answer('0f82561e-c980-44cb-8a5d-091dbc9c71e6',v_team,1,v_expected,'2026 ID Block TBL — TEST','撤回 '||v_name||' S1','new lesson');
+  v_review:=public.tbl_teacher_answer_review('0f82561e-c980-44cb-8a5d-091dbc9c71e6');
+  if jsonb_array_length(v_review->'history')<>1 or v_review->'history'->0->>'id'<>v_second_audit::text or v_review->'history'->0->>'archived_at' is not null then raise exception 'New lesson audit not separated';end if;
+  perform public.tbl_teacher_reset_with_members('0f82561e-c980-44cb-8a5d-091dbc9c71e6','2026 ID Block TBL — TEST',true);
+  perform set_config('role','none',true);
+  if (select archived_at from public.tbl_answer_corrections where id=v_audit) is distinct from v_archive_at or not exists(select 1 from public.tbl_answer_corrections where id=v_second_audit and archived_at is not null) then raise exception 'Repeated reset changed old archive or missed new audit';end if;
   if pg_temp.withdraw_snapshot(true) is distinct from v_protected then raise exception 'Formal class or unrelated data changed';end if;
   raise exception using errcode='P7777',message='Rollback answer withdrawal QA';
  exception when sqlstate 'P7777' then null;end;
@@ -82,4 +96,4 @@ begin
  if has_function_privilege('anon','public.tbl_teacher_withdraw_answer(uuid,uuid,integer,jsonb,text,text,text)','execute') then raise exception 'Unauthenticated withdrawal privilege exposed';end if;
 end;$v$;
 rollback;
-select 'PASS: single group/stage only; 11 invalid/locked/published/scored/unauthorized cases denied; complete immutable audit; resubmission works; stale screen denied; reset preserves history; formal unchanged; QA rolled back' verification;
+select 'PASS: withdrawal guards; reset archives current history; originals preserved; new lesson separated; repeated reset stable; formal unchanged; QA rolled back' verification;

@@ -9,8 +9,10 @@ create table if not exists public.tbl_answer_corrections(
  original_submission jsonb not null,
  reason text not null check(length(btrim(reason)) between 1 and 500),
  withdrawn_by uuid not null,
- withdrawn_at timestamptz not null default clock_timestamp()
+ withdrawn_at timestamptz not null default clock_timestamp(),
+ archived_at timestamptz
 );
+alter table public.tbl_answer_corrections add column if not exists archived_at timestamptz;
 create index if not exists tbl_answer_corrections_session_time on public.tbl_answer_corrections(session_id,withdrawn_at desc);
 alter table public.tbl_answer_corrections enable row level security;
 revoke all on public.tbl_answer_corrections from public,anon,authenticated;
@@ -25,7 +27,9 @@ begin
    from public.tbl_submissions sub join public.tbl_teams t on t.id=sub.team_id and t.session_id=sub.session_id
    join public.tbl_stages st on st.session_id=sub.session_id and st.stage_number=sub.stage_number where sub.session_id=p_session_id),'[]'::jsonb),
   'history',coalesce((select jsonb_agg(to_jsonb(recent) order by recent.withdrawn_at desc,recent.id) from
-   (select * from public.tbl_answer_corrections c where c.session_id=p_session_id order by c.withdrawn_at desc,c.id limit 100) recent),'[]'::jsonb)
+   (select * from public.tbl_answer_corrections c where c.session_id=p_session_id and c.archived_at is null order by c.withdrawn_at desc,c.id limit 100) recent),'[]'::jsonb),
+  'archived_history',coalesce((select jsonb_agg(to_jsonb(recent) order by recent.archived_at desc,recent.withdrawn_at desc,recent.id) from
+   (select * from public.tbl_answer_corrections c where c.session_id=p_session_id and c.archived_at is not null order by c.archived_at desc,c.withdrawn_at desc,c.id limit 100) recent),'[]'::jsonb)
  );
 end;$f$;
 revoke all on function public.tbl_teacher_answer_review(uuid) from public,anon;

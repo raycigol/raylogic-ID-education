@@ -1,6 +1,6 @@
 let answerReviewNonce=0;
 function clearAnswerReview(){
- answerReviewNonce++;$('answerReview').replaceChildren();$('answerHistory').replaceChildren();$('answerReviewName').textContent='';$('loadAnswerReview').disabled=false;
+ answerReviewNonce++;$('answerReview').replaceChildren();$('answerHistory').replaceChildren();$('archivedAnswerHistory').replaceChildren();$('answerReviewName').textContent='';$('loadAnswerReview').disabled=false;
 }
 function answerReviewTime(value){return new Date(value).toLocaleString('zh-TW',{hour12:false})}
 async function loadAnswerReview(){
@@ -10,7 +10,7 @@ async function loadAnswerReview(){
  try{
   const result=await rpc('tbl_teacher_answer_review',{p_session_id:target});
   if(target!==teacherSession||nonce!==answerReviewNonce)return;
-  $('answerReview').replaceChildren();$('answerHistory').replaceChildren();$('answerReviewName').textContent=name+'｜僅能撤回未鎖定、未公布且尚未計分的答案';
+  $('answerReview').replaceChildren();$('answerHistory').replaceChildren();$('archivedAnswerHistory').replaceChildren();$('answerReviewName').textContent=name+'｜僅能撤回未鎖定、未公布且尚未計分的答案';
   for(const entry of result.submissions||[]){
    const submission=entry.submission,row=document.createElement('div');row.className='stage';
    const text=document.createElement('div');text.textContent=entry.team_name+'｜S'+submission.stage_number+'｜答案 '+submission.answer+'｜'+answerReviewTime(submission.submitted_at);
@@ -30,14 +30,19 @@ async function loadAnswerReview(){
    row.append(text,button);$('answerReview').append(row);
   }
   if(!result.submissions?.length)$('answerReview').textContent='目前沒有已提交答案。';
-  for(const record of result.history||[]){
+  const renderHistory=(records,container,archived)=>{
+   for(const record of records){
    const row=document.createElement('div');row.className='stage';
    const original=record.original_submission;
-   const text=document.createElement('div');text.textContent=record.team_name+'｜S'+record.stage_number+'｜原答案 '+original.answer+'（提交：'+answerReviewTime(original.submitted_at)+'）｜教師撤回：'+answerReviewTime(record.withdrawn_at)+'｜原因：'+record.reason;
-   row.append(text);$('answerHistory').append(row);
-  }
-  if(!result.history?.length)$('answerHistory').textContent='目前沒有更正紀錄。';
- }catch(error){if(target===teacherSession&&nonce===answerReviewNonce){$('answerReview').replaceChildren();$('answerHistory').replaceChildren();say(errorText(error),'error')}}
+   const text=document.createElement('div');text.textContent=record.team_name+'｜S'+record.stage_number+'｜原答案 '+original.answer+'（提交：'+answerReviewTime(original.submitted_at)+'）｜教師撤回：'+answerReviewTime(record.withdrawn_at)+'｜原因：'+record.reason+(archived?'｜封存：'+answerReviewTime(record.archived_at):'');
+   row.append(text);container.append(row);
+   }
+  };
+  renderHistory(result.history||[],$('answerHistory'),false);
+  renderHistory(result.archived_history||[],$('archivedAnswerHistory'),true);
+  if(!result.history?.length)$('answerHistory').textContent='本次課堂沒有更正紀錄。';
+  if(!result.archived_history?.length)$('archivedAnswerHistory').textContent='目前沒有封存紀錄。';
+ }catch(error){if(target===teacherSession&&nonce===answerReviewNonce){$('answerReview').replaceChildren();$('answerHistory').replaceChildren();$('archivedAnswerHistory').replaceChildren();say(errorText(error),'error')}}
  finally{if(nonce===answerReviewNonce)$('loadAnswerReview').disabled=false}
 }
 $('loadAnswerReview').onclick=()=>loadAnswerReview();
