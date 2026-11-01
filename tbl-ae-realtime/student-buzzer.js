@@ -11,13 +11,13 @@ async function loadStudentBuzzer(){
   const data=await rpc('tbl_buzzer_status',{p_session_id:session});
   if(nonce!==studentBuzzerNonce||session!==mySession||membershipNonce!==studentNonce)return;
   const round=data.rounds[0];
-  if(!round||!['open','claimed'].includes(round.state)){clearStudentBuzzer();return}
-  studentBuzzerRound=round.id;
+  if(data.enabled!==true){clearStudentBuzzer();return}
+  studentBuzzerRound=round?.state==='open'?round.id:null;
   $('studentBuzzer').classList.remove('hide');
-  $('studentBuzzerStatus').textContent=!round?'教師尚未開啟搶答':('第 '+round.round_number+' 輪｜'+(round.winner_team_id?(round.winner_team_id===data.my_team_id?'本組取得回答權！':'回答權：'+round.winner_name):round.state==='open'?'搶答開放中':'本輪已結束')+'｜本輪 '+round.points+' 分');
+  $('studentBuzzerStatus').textContent=!round?'搶答功能已開啟，等待教師開啟新一輪。':round.state==='closed'?'第 '+round.round_number+' 輪已結束，等待教師開啟下一輪。':('第 '+round.round_number+' 輪｜'+(round.winner_team_id?(round.winner_team_id===data.my_team_id?'本組取得回答權！':'回答權：'+round.winner_name):'搶答開放中')+'｜本輪 '+round.points+' 分');
   $('buzzButton').disabled=!round||round.state!=='open';
   $('buzzButton').onclick=async()=>{
-   if(!round||studentBuzzerBusy||studentBusy||session!==mySession||membershipNonce!==studentNonce||studentBuzzerRound!==round.id)return;
+   if(!round||round.state!=='open'||studentBuzzerBusy||studentBusy||session!==mySession||membershipNonce!==studentNonce||studentBuzzerRound!==round.id)return;
    studentBuzzerBusy=true;$('buzzButton').disabled=true;
    try{
     const won=await rpc('tbl_student_buzz',{p_session_id:session,p_round_id:round.id});

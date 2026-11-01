@@ -4,11 +4,13 @@ function clearTeacherBuzzer(){
  $('buzzerStatus').textContent='選擇課堂後，按「重新整理」。';
  $('buzzerHistory').replaceChildren();$('buzzerHistory').dataset.signature='';$('buzzerTotals').replaceChildren();$('buzzerLog').replaceChildren();
  $('startBuzzer').disabled=true;$('closeBuzzer').disabled=true;
+ $('toggleBuzzer').disabled=true;$('toggleBuzzer').textContent='開啟搶答功能';$('toggleBuzzer').setAttribute('aria-pressed','false');
 }
 async function teacherBuzzerAction(action,round=null,points=null,reason=null,expectedSession=teacherSession){
  if(actionBusy||!teacherSession||buzzerTarget!==teacherSession||expectedSession!==teacherSession)return;
  const target=teacherSession,name=teacherTitle;
- if(!confirm('課堂：'+name+'\n'+(action==='start'?'開啟新一輪搶答？':action==='close'?'結束第 '+round.round_number+' 輪？':'第 '+round.round_number+' 輪：'+round.winner_name+' 設為 '+points+' 分？')+'\n搶答積分與四階段成績分開。'))return;
+ const question=action==='enable'?'開啟搶答功能？學生將先看到按鈕，等待你開啟新一輪。':action==='disable'?'關閉搶答功能並結束進行中的輪次？學生搶答區會隱藏，既有積分保留。':action==='start'?'開啟新一輪搶答？':action==='close'?'結束第 '+round.round_number+' 輪？':'第 '+round.round_number+' 輪：'+round.winner_name+' 設為 '+points+' 分？';
+ if(!confirm('課堂：'+name+'\n'+question+'\n搶答積分與四階段成績分開。'))return;
  actionBusy=true;refreshNonce++;$('sessionSelect').disabled=true;buzzerNonce++;
  try{
   await rpc('tbl_teacher_buzzer',{p_session_id:target,p_action:action,p_round_id:round?.id||null,p_points:points,p_reason:reason,p_expected_points:round?.points??null});
@@ -24,10 +26,13 @@ async function loadTeacherBuzzer(){
   if(nonce!==buzzerNonce||target!==teacherSession)return;
   buzzerTarget=target;
   const latest=data.rounds[0];
-  $('buzzerStatus').textContent=name+'｜'+(!latest?'尚未開啟搶答':('第 '+latest.round_number+' 輪｜'+(latest.winner_name?'回答權：'+latest.winner_name+'｜'+latest.points+' 分':latest.state==='open'?'等待各組搶答':'已結束，無組別搶得')));
-  $('startBuzzer').disabled=latest?.state==='open';
+  const enabled=data.enabled===true;
+  $('toggleBuzzer').disabled=false;$('toggleBuzzer').textContent=enabled?'關閉搶答功能':'開啟搶答功能';$('toggleBuzzer').setAttribute('aria-pressed',String(enabled));
+  $('toggleBuzzer').onclick=()=>teacherBuzzerAction(enabled?'disable':'enable',null,null,null,target);
+  $('buzzerStatus').textContent=name+'｜'+(!enabled?'搶答功能關閉（學生頁隱藏）':!latest||latest.state==='closed'?'搶答功能已開啟，學生可看到按鈕，等待開啟新一輪':('第 '+latest.round_number+' 輪｜'+(latest.winner_name?'回答權：'+latest.winner_name+'｜'+latest.points+' 分':'等待各組搶答')));
+  $('startBuzzer').disabled=!enabled||latest?.state==='open';
   $('startBuzzer').onclick=()=>teacherBuzzerAction('start',null,null,null,target);
-  $('closeBuzzer').disabled=!latest||latest.state==='closed';
+  $('closeBuzzer').disabled=!enabled||!latest||latest.state==='closed';
   $('closeBuzzer').onclick=()=>teacherBuzzerAction('close',latest,null,null,target);
   $('buzzerTotals').replaceChildren();
   for(const team of data.totals){const p=document.createElement('p');p.textContent=team.team_name+'：'+team.points+' 分';$('buzzerTotals').append(p)}

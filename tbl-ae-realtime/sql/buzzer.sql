@@ -28,6 +28,15 @@ alter table public.tbl_buzzer_rounds enable row level security;
 alter table public.tbl_buzzer_score_log enable row level security;
 revoke all on public.tbl_buzzer_rounds,public.tbl_buzzer_score_log from public,anon,authenticated;
 
+-- Preserve any round already in progress on first installation only.
+do $migration$
+begin
+ if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='tbl_sessions' and column_name='buzzer_enabled') then
+  alter table public.tbl_sessions add column buzzer_enabled boolean not null default false;
+  update public.tbl_sessions s set buzzer_enabled=true where exists(select 1 from public.tbl_buzzer_rounds r where r.session_id=s.id and r.archived_at is null and r.state in ('open','claimed'));
+ end if;
+end;$migration$;
+
 create or replace function public.tbl_buzzer_status(p_session_id uuid)
 returns jsonb language plpgsql security definer set search_path='' as $f$
 declare v_team uuid;v_teacher boolean;
@@ -37,6 +46,7 @@ begin
  select m.team_id into v_team from public.tbl_team_members m where m.session_id=p_session_id and m.user_id=auth.uid();
  if not v_teacher and (v_team is null or not coalesce((auth.jwt()->>'is_anonymous')::boolean,false)) then raise exception 'Class access denied';end if;
  return jsonb_build_object(
+  'enabled',(select s.buzzer_enabled from public.tbl_sessions s where s.id=p_session_id),
   'my_team_id',v_team,
   'rounds',coalesce((select jsonb_agg(to_jsonb(q) order by q.round_number desc) from(
    select r.id,r.round_number,r.state,r.winner_team_id,t.team_name as winner_name,r.points,r.opened_at,r.claimed_at
@@ -59,7 +69,16 @@ begin
  if auth.uid() is null or coalesce((auth.jwt()->>'is_anonymous')::boolean,false) then raise exception 'Teacher authentication required';end if;
  perform 1 from public.tbl_sessions s where s.id=p_session_id and s.teacher_id=auth.uid() for update;
  if not found then raise exception 'Teacher access denied';end if;
+ if p_action='enable' then
+  update public.tbl_sessions set buzzer_enabled=true where id=p_session_id;
+  return p_session_id;
+ elsif p_action='disable' then
+  update public.tbl_buzzer_rounds set state='closed' where session_id=p_session_id and archived_at is null and state in ('open','claimed');
+  update public.tbl_sessions set buzzer_enabled=false where id=p_session_id;
+  return p_session_id;
+ end if;
  if p_action='start' then
+  if not (select s.buzzer_enabled from public.tbl_sessions s where s.id=p_session_id) then raise exception 'Enable buzzer before starting a round';end if;
   if exists(select 1 from public.tbl_buzzer_rounds r where r.session_id=p_session_id and r.state='open' and r.archived_at is null) then raise exception 'A buzzer round is already open';end if;
   update public.tbl_buzzer_rounds set state='closed' where session_id=p_session_id and state='claimed' and archived_at is null;
   select coalesce(max(r.round_number),0)+1 into v_number from public.tbl_buzzer_rounds r where r.session_id=p_session_id;
@@ -90,6 +109,9 @@ begin
  if auth.uid() is null or not coalesce((auth.jwt()->>'is_anonymous')::boolean,false) then raise exception 'Student authentication required';end if;
  select m.team_id into v_team from public.tbl_team_members m where m.session_id=p_session_id and m.user_id=auth.uid() for update;
  if v_team is null then raise exception 'Team membership not found';end if;
+ -- The shared session lock serializes claims with feature disable/reset.
+ perform 1 from public.tbl_sessions s where s.id=p_session_id and s.buzzer_enabled for share;
+ if not found then raise exception 'Buzzer feature is disabled';end if;
  select r.* into v_round from public.tbl_buzzer_rounds r where r.id=p_round_id and r.session_id=p_session_id and r.archived_at is null for update;
  if not found then raise exception 'Round not found or archived';end if;
  if v_round.state<>'open' then return coalesce(v_round.winner_team_id=v_team,false);end if;
@@ -112,7 +134,7 @@ begin
  delete from public.tbl_stage_results where session_id=p_session_id;
  delete from public.tbl_submissions where session_id=p_session_id;
  update public.tbl_stages set is_open=false,is_locked=false,is_revealed=false where session_id=p_session_id;
- update public.tbl_sessions set active_stage=1 where id=p_session_id;
+ update public.tbl_sessions set active_stage=1,buzzer_enabled=false where id=p_session_id;
  update public.tbl_answer_corrections set archived_at=clock_timestamp() where session_id=p_session_id and archived_at is null;
  update public.tbl_buzzer_rounds set state='closed',archived_at=clock_timestamp() where session_id=p_session_id and archived_at is null;
 end;$f$;

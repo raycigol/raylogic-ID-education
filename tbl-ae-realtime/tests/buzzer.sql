@@ -30,6 +30,12 @@ begin
  update public.tbl_buzzer_rounds set state='closed',archived_at=clock_timestamp() where session_id=v_session and archived_at is null;
  perform set_config('request.jwt.claim.sub',v_teacher::text,true);
  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_teacher,'is_anonymous',false)::text,true);
+ perform public.tbl_teacher_buzzer(v_session,'disable');
+ v_status:=public.tbl_buzzer_status(v_session);
+ if (v_status->>'enabled')::boolean then raise exception 'Disable failed';end if;
+ perform public.tbl_teacher_buzzer(v_session,'enable');
+ v_status:=public.tbl_buzzer_status(v_session);
+ if (v_status->>'enabled')::boolean is not true then raise exception 'Enable failed';end if;
  v_round:=public.tbl_teacher_buzzer(v_session,'start');
  v_failed:=false;
  begin perform public.tbl_teacher_buzzer(v_session,'start');exception when others then
@@ -60,6 +66,10 @@ begin
  perform public.tbl_teacher_buzzer(v_session,'score',v_round,3,'QA correction',5);
  if (select count(*) from public.tbl_buzzer_score_log where round_id=v_round)<>2 then raise exception 'Audit failed';end if;
  if not exists(select 1 from jsonb_array_elements(public.tbl_buzzer_status(v_session)->'totals') t where t->>'team_id'=v_team1::text and (t->>'points')::int=3) then raise exception 'Total failed';end if;
+ perform public.tbl_teacher_buzzer(v_session,'disable');
+ v_status:=public.tbl_buzzer_status(v_session);
+ if (v_status->>'enabled')::boolean or not exists(select 1 from jsonb_array_elements(v_status->'totals') t where t->>'team_id'=v_team1::text and (t->>'points')::int=3) then raise exception 'Disable lost scores';end if;
+ perform public.tbl_teacher_buzzer(v_session,'enable');
  v_next:=public.tbl_teacher_buzzer(v_session,'start');
  perform set_config('request.jwt.claim.sub',v_user2::text,true);
  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_user2,'is_anonymous',true)::text,true);
@@ -75,13 +85,14 @@ begin
  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_teacher,'is_anonymous',false)::text,true);
  perform public.tbl_teacher_reset_session(v_session,v_title);
  v_status:=public.tbl_buzzer_status(v_session);
+ if (v_status->>'enabled')::boolean then raise exception 'Reset left feature enabled';end if;
  if v_status->'rounds'<>'[]'::jsonb or exists(select 1 from jsonb_array_elements(v_status->'totals') t where (t->>'points')::int<>0) then raise exception 'Reset not cleared';end if;
  if (select count(*) from public.tbl_buzzer_score_log where round_id=v_round)<>2 then raise exception 'Reset lost audit';end if;
  perform set_config('request.jwt.claim.sub',v_user1::text,true);
  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_user1,'is_anonymous',true)::text,true);
  v_failed:=false;
  begin perform public.tbl_student_buzz(v_session,v_round);exception when others then
-  if sqlerrm<>'Round not found or archived' then raise;end if;v_failed:=true;
+  if sqlerrm<>'Buzzer feature is disabled' then raise;end if;v_failed:=true;
  end;
  if not v_failed then raise exception 'Archived round accepted';end if;
  if exists(select 1 from buzzer_before b where b.id<>v_session and pg_temp.buzzer_snapshot(b.id) is distinct from b.snapshot) then raise exception 'Other classroom modified';end if;
