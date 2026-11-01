@@ -5,6 +5,7 @@ if(scannedCode){
  window.history.replaceState(null,'',window.location.pathname+window.location.search);
 }
 function clearStudent(){
+ if(typeof clearStudentBuzzer==='function')clearStudentBuzzer();
  mySession=null;$('work').classList.add('hide');$('join').classList.remove('hide');
  $('stageList').replaceChildren();$('teamName').textContent='';
 }
@@ -34,6 +35,7 @@ async function loadStudent(){
   mySession=current.session_id;
   const session=mySession,name=current.team_name,title=sessionStorage.getItem(STUDENT_TITLE_KEY)||'';
   $('join').classList.add('hide');$('work').classList.remove('hide');$('teamName').textContent=(title?title+'｜':'')+name;
+  if(typeof loadStudentBuzzer==='function')loadStudentBuzzer();
   const area=$('stageList');area.replaceChildren();
   for(const stage of rows.filter(row=>row.session_id===session)){
    const box=document.createElement('div');box.className='stage';

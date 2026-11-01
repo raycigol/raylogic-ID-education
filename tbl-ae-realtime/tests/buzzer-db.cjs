@@ -1,0 +1,90 @@
+// Isolated PostgreSQL (PGlite) regression; never connects to Supabase.
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {PGlite}=require(process.argv[2]||'@electric-sql/pglite');
+(async()=>{
+ const db=new PGlite(),root=process.argv[3]||path.join(__dirname,'../sql');
+ await db.exec(`
+ create role anon;create role authenticated;create schema auth;
+ create table auth.users(id uuid primary key,is_anonymous boolean);
+ create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ create function auth.jwt() returns jsonb language sql as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
+ create table public.tbl_sessions(id uuid primary key,title text,teacher_id uuid,active_stage integer);
+ create table public.tbl_teams(id uuid primary key,session_id uuid references tbl_sessions,team_number integer,team_name text);
+ create table public.tbl_team_members(session_id uuid,team_id uuid references tbl_teams,user_id uuid);
+ create table public.tbl_stages(session_id uuid,stage_number integer,is_open boolean,is_locked boolean,is_revealed boolean);
+ create table public.tbl_submissions(session_id uuid,team_id uuid,stage_number integer,answer text);
+ create table public.tbl_stage_results(session_id uuid,team_id uuid,stage_number integer,score integer);
+ create table public.tbl_answer_corrections(session_id uuid,archived_at timestamptz);
+ `);
+ await db.exec(fs.readFileSync(path.join(root,'buzzer.sql'),'utf8'));
+ // Installing twice must not reset any classroom.
+ await db.exec(fs.readFileSync(path.join(root,'buzzer.sql'),'utf8'));
+ const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
+ const test='0f82561e-c980-44cb-8a5d-091dbc9c71e6',formal=id(2),teacher=id(3),otherTeacher=id(4),student1=id(5),student2=id(6),team1=id(7),team2=id(8),formalTeam=id(9);
+ const query=async(sql,params=[])=>(await db.query(sql,params)).rows;
+ const auth=async(user,anonymous=false)=>{await query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claims',$2,false)",[user||'',JSON.stringify({is_anonymous:anonymous})])};
+ const action=async(session,act,round=null,points=null,reason=null,expected=null)=>(await query('select tbl_teacher_buzzer($1,$2,$3,$4,$5,$6) as id',[session,act,round,points,reason,expected]))[0].id;
+ const status=async(session)=>(await query('select tbl_buzzer_status($1) as data',[session]))[0].data;
+ const buzz=async(session,round)=>(await query('select tbl_student_buzz($1,$2) as won',[session,round]))[0].won;
+ await query('insert into tbl_sessions values($1,\'2026 ID Block TBL — TEST\',$3,1),($2,\'FORMAL\',$3,1)',[test,formal,teacher]);
+ await query('insert into tbl_teams values($1,$4,1,\'TEST 1\'),($2,$4,2,\'TEST 2\'),($3,$5,1,\'FORMAL 1\')',[team1,team2,formalTeam,test,formal]);
+ await query('insert into tbl_team_members values($1,$2,$3),($1,$4,$5)',[test,team1,student1,team2,student2]);
+ await query('insert into tbl_stages values($1,1,true,false,false),($2,1,false,true,true)',[test,formal]);
+ await query('insert into tbl_submissions values($1,$2,1,\'C\'),($3,$4,1,\'E\')',[test,team1,formal,formalTeam]);
+ await query('insert into tbl_stage_results values($1,$2,1,5)',[formal,formalTeam]);
+ const snapshot=async(session)=>JSON.stringify(await query(`select (select jsonb_agg(t) from tbl_sessions t where id=$1) sessions,(select jsonb_agg(t) from tbl_stages t where session_id=$1) stages,(select jsonb_agg(t) from tbl_submissions t where session_id=$1) answers,(select jsonb_agg(t) from tbl_stage_results t where session_id=$1) scores`,[session]));
+ const formalBefore=await snapshot(formal),testBefore=await snapshot(test);
+ await auth(null);await assert.rejects(()=>status(test),/Authentication/);
+ await auth(otherTeacher);await assert.rejects(()=>action(test,'start'),/access denied/);
+ await auth(student1,true);await assert.rejects(()=>action(test,'start'),/Teacher/);
+ await assert.rejects(()=>status(formal),/access denied/);
+ await auth(teacher);const round=await action(test,'start');
+ await assert.rejects(()=>action(test,'start'),/already open/);
+ await assert.rejects(()=>buzz(test,round),/Student authentication/);
+ await auth(student1,true);
+ assert.equal(await buzz(test,round),true);assert.equal(await buzz(test,round),true,'retry is idempotent');
+ await auth(student2,true);assert.equal(await buzz(test,round),false,'later request cannot replace winner');
+ assert.equal((await status(test)).rounds[0].winner_team_id,team1);
+ await assert.rejects(()=>buzz(formal,round),/membership/);
+ await auth(teacher);
+ await action(test,'score',round,5,'Correct answer',0);
+ await assert.rejects(()=>action(test,'score',round,8,'Stale score',0),/Score changed/);
+ await assert.rejects(()=>action(test,'score',round,101,'Out of range',5),/0-100/);
+ await assert.rejects(()=>action(test,'score',round,6,' ',5),/reason/);
+ await action(test,'score',round,3,'Correction',5);
+ let data=await status(test);assert.equal(data.totals[0].points,3);assert.equal(data.score_log.length,2);
+ await auth(student1,true);assert.deepEqual((await status(test)).score_log,[],'teacher audit is private');
+ await auth(teacher);await action(test,'close',round);
+ const next=await action(test,'start');
+ await auth(student2,true);assert.equal(await buzz(test,round),false,'old-round requests cannot claim current round');
+ assert.equal((await status(test)).rounds[0].winner_team_id,null);
+ await query('delete from tbl_team_members where user_id=$1',[student2]);
+ await assert.rejects(()=>buzz(test,next),/membership/);await assert.rejects(()=>status(test),/access denied/);
+ await auth(teacher);await action(test,'close',next);
+ await auth(student1,true);assert.equal(await buzz(test,next),false,'closed round cannot be claimed');
+ assert.equal(await snapshot(test),testBefore,'buzzer never alters stage answers/scores');
+ await auth(teacher);
+ await query('select tbl_teacher_reset_session($1,$2)',[test,'2026 ID Block TBL — TEST']);
+ data=await status(test);assert.equal(data.rounds.length,0);assert.ok(data.totals.every(t=>t.points===0));
+ assert.equal((await query('select count(*)::int as n from tbl_buzzer_score_log'))[0].n,2,'audit retained');
+ await auth(student1,true);await assert.rejects(()=>buzz(test,round),/archived/);
+ await auth(teacher);const afterReset=await action(test,'start');assert.notEqual(afterReset,round);
+ // Issue overlapping requests through the single PostgreSQL engine queue.
+ // This embedded engine test does not emulate multiple production connections.
+ await db.exec(`create function public.qa_buzz(p_user uuid,p_session uuid,p_round uuid) returns boolean language plpgsql as $f$
+ begin
+ perform set_config('request.jwt.claim.sub',p_user::text,true);
+ perform set_config('request.jwt.claims','{"is_anonymous":true}',true);
+ return public.tbl_student_buzz(p_session,p_round);
+ end;$f$;`);
+ await query('insert into tbl_team_members values($1,$2,$3)',[test,team2,student2]);
+ const overlap=await Promise.all([student1,student2].map(user=>query('select qa_buzz($1,$2,$3) as won',[user,test,afterReset])));
+ assert.equal(overlap.filter(result=>result[0].won).length,1,'overlapping requests yield one winner');
+ assert.equal(await snapshot(formal),formalBefore,'formal classroom unchanged including reset');
+ const grants=await query("select has_table_privilege('authenticated','tbl_buzzer_rounds','SELECT') as read,has_table_privilege('authenticated','tbl_buzzer_score_log','UPDATE') as write");
+ assert.equal(grants[0].read,false);assert.equal(grants[0].write,false);
+ const qa=fs.existsSync(path.join(root,'buzzer-test.sql'))?path.join(root,'buzzer-test.sql'):path.join(root,'../tests/buzzer.sql');
+ await db.exec(fs.readFileSync(qa,'utf8'));
+ await db.close();
+ console.log('PASS: SQL migration/idempotency; winner/retry/late/closed/stale-round guards; teacher/manual scoring/audit; membership revocation; session isolation; reset archival; original grades untouched; private tables');
+})().catch(error=>{console.error(error);process.exitCode=1});
