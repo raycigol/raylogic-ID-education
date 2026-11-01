@@ -14,6 +14,7 @@ const context=vm.createContext({document,console,confirm:()=>true,setInterval:()
 const flush=async()=>{for(let count=0;count<30;count++)await new Promise(resolve=>setImmediate(resolve))};
 (async()=>{
  context.clearJoinCodes=clearJoinCodes;
+ context.clearRepresentatives=()=>{if(nodes.has('clearMembers'))nodes.get('clearMembers').checked=false};
  vm.runInContext(fs.readFileSync(process.argv[2]||__dirname+'/../teacher.js','utf8'),context);await flush();
  const selector=nodes.get('sessionSelect'),initial=selector.children[0],rebuilds=selector.rebuilds;
  await vm.runInContext('loadTeacher()',context);assert.equal(selector.rebuilds,rebuilds);assert.equal(selector.children[0],initial);
@@ -30,12 +31,15 @@ const flush=async()=>{for(let count=0;count<30;count++)await new Promise(resolve
  assert.ok(calls.some(call=>call[0]==='tbl_teacher_simulate_test_submissions'&&call[1].p_session_id===sessions[0].id));
  await nodes.get('stages').children[0].children[1].children[0].onclick();await flush();
  assert.ok(calls.some(call=>call[0]==='tbl_teacher_open_stage'&&call[1].p_session_id===sessions[0].id));
- context.prompt=()=>null;const resets=()=>calls.filter(call=>call[0]==='tbl_teacher_reset_session').length;
+ context.prompt=()=>null;const resets=()=>calls.filter(call=>call[0]==='tbl_teacher_reset_with_members').length;
  await nodes.get('resetSession').onclick();assert.equal(resets(),0);
  context.prompt=()=>'wrong classroom';await nodes.get('resetSession').onclick();assert.equal(resets(),0);
  context.prompt=()=>sessions[0].title;await nodes.get('resetSession').onclick();await flush();
  assert.equal(resets(),1);
- const reset=calls.find(call=>call[0]==='tbl_teacher_reset_session');
+ const reset=calls.find(call=>call[0]==='tbl_teacher_reset_with_members');
  assert.equal(reset[1].p_session_id,sessions[0].id);assert.equal(reset[1].p_confirm_title,sessions[0].title);
+ assert.equal(reset[1].p_clear_members,false);
+ nodes.get('clearMembers').checked=true;await nodes.get('resetSession').onclick();await flush();
+ assert.equal(calls.filter(call=>call[0]==='tbl_teacher_reset_with_members')[1][1].p_clear_members,true);
  console.log('PASS: selector switching and simulator regression; reset cancellation, wrong-title rejection and captured session target');
 })().catch(error=>{console.error(error);process.exitCode=1});

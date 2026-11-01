@@ -19,7 +19,7 @@ async function loadTeacher(){
   const preferred=teacherSession||sessionStorage.getItem(SESSION_KEY);
   const selected=ss.find(x=>x.id===preferred)||(!preferred&&(ss.find(x=>x.title==='2026 ID Block TBL — TEST')||ss[0]));
   if(!selected){$('stages').replaceChildren();$('scoreRows').replaceChildren();throw new Error('目前課堂已不存在或無讀取權限，請重新登入並確認課堂權限。')}
-  if(teacherSession!==selected.id)clearJoinCodes();
+  if(teacherSession!==selected.id){clearJoinCodes();clearRepresentatives()}
   teacherSession=selected.id;teacherTitle=selected.title;
   const options=ss.map(s=>({value:s.id,text:s.title+(s.title.includes('TEST')?'（測試）':'（正式）')}));
   if(selector.options.length!==options.length||options.some((item,index)=>selector.options[index].value!==item.value||selector.options[index].textContent!==item.text)){
@@ -34,13 +34,15 @@ async function loadTeacher(){
   const target=teacherSession;
   $('resetSession').onclick=async()=>{
    if(actionBusy||nonce!==refreshNonce||teacherSession!==target)return;
-   const confirmation=prompt('重置課堂：'+name+'\n將永久清除本課堂所有答案與分數，四階段回到未開放。\n組別、加入代碼與學生綁定保留。\n請先另存需要保留的成績，再輸入完整課堂名稱確認：');
+   const clearMembers=$('clearMembers').checked===true;
+   const memberNotice=clearMembers?'同時解除本課堂全部代表，組別與加入碼保留。':'組別、加入代碼與學生綁定保留。';
+   const confirmation=prompt('重置課堂：'+name+'\n將永久清除本課堂所有答案與分數，四階段回到未開放。\n'+memberNotice+'\n請先另存需要保留的成績，再輸入完整課堂名稱確認：');
    if(confirmation===null)return;
    if(confirmation!==name){say('課堂名稱不符，未執行重置。','error');return}
-   if(!confirm('最後確認：永久清除「'+name+'」的答案與分數？\n只處理此課堂，無法從頁面復原。'))return;
+   if(!confirm('最後確認：永久清除「'+name+'」的答案與分數？\n'+memberNotice+'\n只處理此課堂，無法從頁面復原。'))return;
    actionBusy=true;refreshNonce++;$('sessionSelect').disabled=true;$('resetSession').disabled=true;
    $('stages').replaceChildren();$('scoreRows').replaceChildren();
-   try{await rpc('tbl_teacher_reset_session',{p_session_id:target,p_confirm_title:confirmation});say('已重置「'+name+'」，答案與分數已清除，請重新開放 Stage 1。','good')}
+   try{await rpc('tbl_teacher_reset_with_members',{p_session_id:target,p_confirm_title:confirmation,p_clear_members:clearMembers});clearRepresentatives();say('已重置「'+name+'」，答案與分數已清除。'+memberNotice+'請重新開放 Stage 1。','good')}
    catch(error){say(errorText(error),'error')}
    finally{actionBusy=false;$('sessionSelect').disabled=false;$('resetSession').disabled=false;await loadTeacher()}
   };
@@ -94,6 +96,7 @@ $('sessionSelect').onchange=()=>{
  if(actionBusy){$('sessionSelect').value=teacherSession;return}
  teacherSession=$('sessionSelect').value;
  clearJoinCodes();
+ clearRepresentatives();
  sessionStorage.setItem(SESSION_KEY,teacherSession);
  refreshNonce++;
  $('sessionName').textContent='切換中…';
@@ -102,5 +105,5 @@ $('sessionSelect').onchange=()=>{
  loadTeacher();
 };
 $('login').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){say(errorText(error),'error');return}refreshNonce++;teacherSession=null;sessionStorage.removeItem(SESSION_KEY);say('教師已登入','good');loadTeacher()};
-$('logout').onclick=async()=>{if(actionBusy)return;refreshNonce++;teacherSession=null;teacherTitle='';clearJoinCodes();sessionStorage.removeItem(SESSION_KEY);$('control').classList.add('hide');$('scores').classList.add('hide');$('stages').replaceChildren();$('scoreRows').replaceChildren();await sb.auth.signOut();say('已登出')};
+$('logout').onclick=async()=>{if(actionBusy)return;refreshNonce++;teacherSession=null;teacherTitle='';clearJoinCodes();clearRepresentatives();sessionStorage.removeItem(SESSION_KEY);$('control').classList.add('hide');$('scores').classList.add('hide');$('stages').replaceChildren();$('scoreRows').replaceChildren();await sb.auth.signOut();say('已登出')};
 loadTeacher();setInterval(()=>{if(!document.hidden)loadTeacher()},4000);

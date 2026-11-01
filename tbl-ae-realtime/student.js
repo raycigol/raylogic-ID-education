@@ -27,7 +27,7 @@ async function loadStudent(){
   if(!user.user||!user.user.is_anonymous){clearStudent();return}
   const rows=await rpc('tbl_student_status',{});
   if(nonce!==studentNonce)return;
-  if(!rows?.length){clearStudent();return}
+  if(!rows?.length){const hadMembership=mySession||sessionStorage.getItem(STUDENT_SESSION_KEY);clearStudent();if(hadMembership)say('目前代表綁定已解除，請先向教師確認，再重新加入正確組別。','error');return}
   const preferred=sessionStorage.getItem(STUDENT_SESSION_KEY);
   const current=preferred?rows.find(row=>row.session_id===preferred):rows[0];
   if(!current){clearStudent();say('找不到目前選擇的課堂，請離開組別並重新加入。','error');return}
