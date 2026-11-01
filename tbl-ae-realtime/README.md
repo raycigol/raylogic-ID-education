@@ -76,6 +76,7 @@
 - 伺服器鎖住該輪判定唯一得主；重複請求不重複得分，晚到的其他組不能取代得主。每次請求都帶課堂及輪次 ID；關閉／封存的輪次無法搶答，舊輪次不會被轉到新輪次。解除代表後即失去搶答資格。
 - 課堂重置在原交易內封存搶答輪次、關閉搶答並使目前積分歸零；舊輪次及判分紀錄仍留在資料庫。安裝本身不開啟搶答、不重置或修改既有課堂資料。
 - 安裝順序：完成原有 SQL（最後為 archive-corrections）後執行 `sql/buzzer.sql`。之後若重跑舊 reset-session 或 archive-corrections SQL，須再執行 buzzer.sql 以保留重置封存行為。
+- Supabase TEST 回滾驗證：執行 `tests/buzzer.sql`，僅使用固定 TEST 課堂建立臨時代表與輪次，驗證後比較所有課堂資料快照並完整回滾。已於實際資料庫驗證成功，正式課堂與既有 TEST 資料均保留。
 - 前端測試：`node tbl-ae-realtime/tests/buzzer-ui.cjs`。隔離資料庫測試使用 PGlite：先於臨時目錄安裝 `@electric-sql/pglite`，再執行 `node tbl-ae-realtime/tests/buzzer-db.cjs /臨時目錄/node_modules/@electric-sql/pglite /專案/tbl-ae-realtime/sql`。測試只建立本機合成資料，涵蓋權限、唯一得主、重送、過期輪次、分數更正、代表解除、課堂隔離與重置；PGlite 的重疊請求會排隊執行，未模擬正式資料庫多連線鎖競爭。
 
 ## 學生查看本組已提交答案
