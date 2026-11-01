@@ -18,16 +18,11 @@ async function loadAnswerReview(){
    button.disabled=entry.is_locked!==false||entry.is_revealed!==false||entry.has_scores===true;
    button.onclick=async()=>{
     if(actionBusy||target!==teacherSession||nonce!==answerReviewNonce||button.disabled)return;
-    const reason=prompt('課堂：'+name+'\n'+text.textContent+'\n請填寫撤回原因（1–500 字）：');
-    if(reason===null)return;
-    if(!reason.trim()||reason.trim().length>500){say('請填寫 1–500 字的撤回原因。','error');return}
-    const expected='撤回 '+entry.team_name+' S'+submission.stage_number;
-    const confirmation=prompt('只撤回此組、此階段的答案，其他組保留。\n原答案與原因會保留在更正紀錄。\n請輸入「'+expected+'」確認：');
-    if(confirmation===null)return;
-    if(confirmation!==expected){say('確認文字不符，未執行撤回。','error');return}
     actionBusy=true;refreshNonce++;answerReviewNonce++;$('sessionSelect').disabled=true;button.disabled=true;
     try{
-     await rpc('tbl_teacher_withdraw_answer',{p_session_id:target,p_team_id:submission.team_id,p_stage:submission.stage_number,p_expected_submission:submission,p_confirm_title:name,p_confirm_text:confirmation,p_reason:reason.trim()});
+     const approval=await requestTeacherConfirmation({action:'撤回',title:'撤回單組答案',details:[['課堂',name],['組別',entry.team_name],['階段','S'+submission.stage_number],['原答案',submission.answer],['提交時間',answerReviewTime(submission.submitted_at)]],effect:'只撤回以上組別、階段的這一筆答案；其他組與階段保留。原答案、教師與撤回原因會保存在更正紀錄。',requireReason:true});
+     if(!approval||target!==teacherSession)return;
+     await rpc('tbl_teacher_withdraw_answer',{p_session_id:target,p_team_id:submission.team_id,p_stage:submission.stage_number,p_expected_submission:submission,p_confirm_title:name,p_confirm_text:'撤回 '+entry.team_name+' S'+submission.stage_number,p_reason:approval.reason});
      clearRepresentatives();say('已撤回「'+name+'」'+entry.team_name+' S'+submission.stage_number+'，原答案與原因已留存；其他組不變。','good');
     }catch(error){say(errorText(error),'error')}
     finally{actionBusy=false;$('sessionSelect').disabled=false;await loadTeacher();await loadAnswerReview()}

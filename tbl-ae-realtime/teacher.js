@@ -36,13 +36,13 @@ async function loadTeacher(){
    if(actionBusy||nonce!==refreshNonce||teacherSession!==target)return;
    const clearMembers=$('clearMembers').checked===true;
    const memberNotice=clearMembers?'同時解除本課堂全部代表，組別與加入碼保留。':'組別、加入代碼與學生綁定保留。';
-   const confirmation=prompt('重置課堂：'+name+'\n將永久清除本課堂所有答案與分數，四階段回到未開放。\n'+memberNotice+'\n請先另存需要保留的成績，再輸入完整課堂名稱確認：');
-   if(confirmation===null)return;
-   if(confirmation!==name){say('課堂名稱不符，未執行重置。','error');return}
-   if(!confirm('最後確認：永久清除「'+name+'」的答案與分數？\n'+memberNotice+'\n只處理此課堂，無法從頁面復原。'))return;
    actionBusy=true;refreshNonce++;$('sessionSelect').disabled=true;$('resetSession').disabled=true;
-   $('stages').replaceChildren();$('scoreRows').replaceChildren();
-   try{await rpc('tbl_teacher_reset_with_members',{p_session_id:target,p_confirm_title:confirmation,p_clear_members:clearMembers});clearRepresentatives();clearAnswerReview();say('已重置「'+name+'」，答案與分數已清除。'+memberNotice+'請重新開放 Stage 1。','good')}
+   try{
+    const approval=await requestTeacherConfirmation({action:'重置',title:'重置課堂',details:[['課堂',name],['範圍','本課堂全部組別、四個階段'],['代表綁定',clearMembers?'全部解除':'保留']],effect:'將永久清除本課堂答案與分數，四階段回到未開放。'+memberNotice+'請先另存成績；無法從頁面復原。'});
+    if(!approval||teacherSession!==target)return;
+    $('stages').replaceChildren();$('scoreRows').replaceChildren();
+    await rpc('tbl_teacher_reset_with_members',{p_session_id:target,p_confirm_title:name,p_clear_members:clearMembers});clearRepresentatives();clearAnswerReview();say('已重置「'+name+'」，答案與分數已清除。'+memberNotice+'請重新開放 Stage 1。','good');
+   }
    catch(error){say(errorText(error),'error')}
    finally{actionBusy=false;$('sessionSelect').disabled=false;$('resetSession').disabled=false;await loadTeacher()}
   };

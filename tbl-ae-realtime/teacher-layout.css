@@ -1,4 +1,17 @@
 [hidden]{display:none!important}
+#teacherConfirmation{width:min(560px,calc(100% - 24px));max-height:90dvh;overflow:auto;border:1px solid var(--line);border-radius:16px;padding:24px;color:var(--ink)}
+#teacherConfirmation::backdrop{background:#10283a99}
+#confirmationDetails{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 16px;padding:16px;background:#f1f5fa;border-radius:10px}
+#confirmationDetails dt{font-weight:700}
+#confirmationDetails dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+#confirmationEffect{line-height:1.7}
+#teacherConfirmation label{display:block;font-weight:700;margin:16px 0 8px}
+#confirmationToken{display:inline-block;background:#fff0df;padding:4px 12px;border:1px solid #ddad83;border-radius:7px;font-size:1.4rem}
+#confirmationWord,#confirmationReason{width:100%;max-width:100%;font:inherit;padding:12px;border:1px solid #b9cadb;border-radius:8px}
+#confirmationWord{font-size:1.4rem;text-align:center}
+#confirmationReason{resize:vertical}
+.confirmation-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:20px}
+#confirmationSubmit{background:#973d26}
 button,summary,select{touch-action:manipulation}
 button,select{min-height:46px}
 button:focus-visible,summary:focus-visible,select:focus-visible,[role="tabpanel"]:focus-visible{outline:3px solid #16827b;outline-offset:3px}
@@ -53,5 +66,5 @@ summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:40px}
 }
 @media print{
  .workspace-header{position:static}
- .account-card,nav,.reset-area{display:none}
+ .account-card,nav,.reset-area,#teacherConfirmation{display:none}
 }

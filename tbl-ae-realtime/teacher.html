@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TBL AE 教師控制台</title>
 <link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="teacher-layout.css?v=20261101-withdraw">
+<link rel="stylesheet" href="teacher-layout.css?v=20261101-confirm">
 </head>
 <body>
 <header><h1>TBL AE｜教師控制台</h1><p>選擇課堂，再選擇要使用的功能</p></header>
@@ -50,10 +50,23 @@
 </section>
 </div>
 </main>
+<dialog id="teacherConfirmation" aria-labelledby="confirmationTitle" aria-describedby="confirmationEffect">
+<form id="confirmationForm">
+<h2 id="confirmationTitle"></h2>
+<dl id="confirmationDetails"></dl>
+<p id="confirmationEffect"></p>
+<div id="confirmationReasonArea" hidden><label for="confirmationReason">撤回原因（1–500 字）</label><textarea id="confirmationReason" rows="3" maxlength="500"></textarea></div>
+<label for="confirmationWord">請輸入這兩個字：<strong id="confirmationToken"></strong></label>
+<input id="confirmationWord" type="text" autocomplete="off" spellcheck="false" maxlength="20" aria-describedby="confirmationHelp">
+<p id="confirmationHelp" class="muted">不必重打課堂或組別名稱。前後或中間不小心輸入的空白會自動忽略。</p>
+<div class="confirmation-actions"><button id="confirmationCancel" type="button" class="secondary">取消</button><button id="confirmationSubmit" type="submit" disabled>確認</button></div>
+</form>
+</dialog>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script><script src="common.js"></script>
 <script src="teacher-layout.js?v=20261101-tabs"></script>
+<script src="teacher-confirmation.js?v=20261101-confirm"></script>
 <script src="join-codes.js?v=20261101-short"></script><script src="vendor/qrcode.js"></script>
-<script src="teacher-join-codes.js?v=20261101-short"></script><script src="teacher-representatives.js?v=20261101-reps"></script><script src="teacher-answer-review.js?v=20261101-withdraw"></script><script src="teacher.js?v=20261101-withdraw"></script>
+<script src="teacher-join-codes.js?v=20261101-short"></script><script src="teacher-representatives.js?v=20261101-reps"></script><script src="teacher-answer-review.js?v=20261101-confirm"></script><script src="teacher.js?v=20261101-confirm"></script>
 </body>
 </html>
