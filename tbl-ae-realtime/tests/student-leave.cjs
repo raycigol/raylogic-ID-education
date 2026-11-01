@@ -13,7 +13,7 @@ const flush=async()=>{for(let count=0;count<10;count++)await new Promise(resolve
   setInterval(){},confirm:()=>true,say(){},errorText:error=>error.message,
   URL,URLSearchParams,window:{location:new URL('https://example.test/tbl/student.html'),history:{replaceState(){}}},
   sessionStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},
-  sb:{auth:{getUser:async()=>({data:{user}}),signOut:async options=>{calls.push(['logout',options]);user=null;return {}},signInAnonymously:async()=>{user={id:'new',is_anonymous:true};return {data:{user}}}}},
+  sb:{auth:{getUser:async()=>({data:{user},error:user?null:{name:'AuthSessionMissingError',message:'Auth session missing!',status:400}}),signOut:async options=>{calls.push(['logout',options]);user=null;return {}},signInAnonymously:async()=>{calls.push(['anonymous-sign-in']);user={id:'new',is_anonymous:true};return {data:{user}}}}},
   rpc:async(name,args)=>{calls.push([name,args]);if(name==='tbl_student_status'){if(hold){hold=false;await new Promise(resolve=>{delay=resolve})}return [{session_id:'TEST',team_name:'TEST 1',stage_number:1,is_open:true,is_locked:false,is_revealed:false}]}if(name==='tbl_join_with_code')return {ok:true,session_id:'TEST',team_name:'TEST 1',title:'TEST'};return []}
  });
  const source=process.argv[2]||__dirname+'/../student.js';
@@ -34,5 +34,10 @@ const flush=async()=>{for(let count=0;count<10;count++)await new Promise(resolve
  user={id:'teacher',is_anonymous:false};const logouts=calls.filter(call=>call[0]==='logout').length;
  await nodes.get('leaveBtn').onclick();assert.equal(calls.filter(call=>call[0]==='logout').length,logouts);
  await assert.rejects(vm.runInContext('ensureAuth()',context),/教師登入/);
- console.log('PASS: local student logout, in-flight refresh and stale submit blocked, rejoin works, teacher login preserved');
+ const signIns=calls.filter(call=>call[0]==='anonymous-sign-in').length;
+ const networkError={name:'AuthRetryableFetchError',message:'Network unavailable'};
+ context.sb.auth.getUser=async()=>({data:{user:null},error:networkError});
+ await assert.rejects(vm.runInContext('ensureAuth()',context),error=>error===networkError);
+ assert.equal(calls.filter(call=>call[0]==='anonymous-sign-in').length,signIns);
+ console.log('PASS: missing-session anonymous signup, student logout/rejoin, stale requests blocked, teacher and network errors preserved');
 })().catch(error=>{console.error(error);process.exitCode=1});

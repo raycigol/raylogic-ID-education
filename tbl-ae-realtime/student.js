@@ -9,7 +9,8 @@ function clearStudent(){
  $('stageList').replaceChildren();$('teamName').textContent='';
 }
 async function ensureAuth(){
- const {data,error}=await sb.auth.getUser();if(error)throw error;
+ const {data,error}=await sb.auth.getUser();
+ if(error&&error.name!=='AuthSessionMissingError')throw error;
  if(data.user){
   if(!data.user.is_anonymous)throw new Error('目前是教師登入，請用另一個瀏覽器或私密模式開啟學生頁。');
   return data.user;
@@ -82,7 +83,7 @@ $('joinBtn').onclick=async()=>{
 $('leaveBtn').onclick=async()=>{
  if(studentBusy)return;
  const {data,error}=await sb.auth.getUser();
- if(error){say(errorText(error),'error');return}
+ if(error&&error.name!=='AuthSessionMissingError'){say(errorText(error),'error');return}
  if(data.user&&!data.user.is_anonymous){say('目前是教師登入，請用另一個瀏覽器或私密模式開啟學生頁。','error');return}
  if(!confirm('離開目前組別並重新輸入代碼？\n只登出本機；不會刪除或撤回任何組別已提交的答案。\n若曾替錯誤組別提交答案，請通知教師。'))return;
  studentBusy=true;$('leaveBtn').disabled=true;studentNonce++;clearStudent();
