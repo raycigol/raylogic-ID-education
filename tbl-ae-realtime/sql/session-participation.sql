@@ -2,6 +2,10 @@
 -- changed on installation. Default roster = every existing team in the session.
 begin;
 set local lock_timeout = '5s';
+-- Verified live schema had team_number BETWEEN 1 AND 13. Keep positive IDs,
+-- remove only that fixed capacity limit; preserve every team and its UUID.
+alter table public.tbl_teams drop constraint if exists tbl_teams_team_number_check;
+alter table public.tbl_teams add constraint tbl_teams_team_number_check check(team_number>=1);
 create table if not exists public.tbl_session_participation (
  session_id uuid primary key references public.tbl_sessions(id),
  team_ids uuid[] not null check(cardinality(team_ids)>0),
@@ -177,3 +181,4 @@ revoke all on function public.tbl_student_status() from public,anon;
 grant execute on function public.tbl_student_status() to authenticated;
 
 commit;
+
