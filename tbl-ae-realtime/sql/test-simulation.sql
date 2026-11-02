@@ -1,3 +1,4 @@
+-- Requires session-participation.sql. Normally install the complete migration instead.
 begin;
 create or replace function public.tbl_teacher_simulate_test_submissions(p_session_id uuid, p_stage integer)
 returns integer
@@ -26,12 +27,10 @@ begin
  if v_stage.is_open is not true or v_stage.is_locked is distinct from false or v_stage.is_revealed is distinct from false then
   raise exception 'Stage is closed or locked';
  end if;
- if (select count(*) from public.tbl_teams where session_id = p_session_id) <> 13 then
-  raise exception 'TEST session must contain exactly 13 teams';
- end if;
+ if not exists(select 1 from public.tbl_active_team_ids(p_session_id)) then raise exception 'No active teams';end if;
  insert into public.tbl_submissions(session_id, team_id, stage_number, answer, submitted_by)
  select p_session_id, team.id, p_stage, 'A', v_user
- from public.tbl_teams team where team.session_id = p_session_id
+ from public.tbl_teams team where team.session_id = p_session_id and team.id in(select public.tbl_active_team_ids(p_session_id))
  on conflict (session_id, team_id, stage_number) do nothing;
  get diagnostics v_inserted = row_count;
  return v_inserted;
@@ -39,4 +38,7 @@ end;
 $function$;
 revoke all on function public.tbl_teacher_simulate_test_submissions(uuid, integer) from public, anon;
 grant execute on function public.tbl_teacher_simulate_test_submissions(uuid, integer) to authenticated;
+
+
+
 commit;

@@ -6,10 +6,13 @@ async function loadJoinCodes(rotateTeam=null){
  const target=teacherSession,name=teacherTitle;
  actionBusy=true;refreshNonce++;$('sessionSelect').disabled=true;$('loadJoinCodes').disabled=true;
  try{
+  const roster=await rpc('tbl_session_roster',{p_session_id:target});
+  const active=new Set(roster.teams.filter(t=>t.active).map(t=>t.team_id));
   const records=await rpc('tbl_teacher_join_codes',{p_session_id:target,p_rotate_team:rotateTeam});
   if(teacherSession!==target)return;
   clearJoinCodes();$('joinCodesName').textContent=name+'｜組別加入碼（請只將對應組別代碼提供給該組）';
   for(const record of records||[]){
+   if(!active.has(record.team_id))continue;
    const card=document.createElement('div');card.className='card';
    const title=document.createElement('h3');title.textContent=record.team_name;
    const code=document.createElement('strong');code.textContent=record.short_code;code.style.fontSize='1.6rem';code.style.letterSpacing='0.12em';
@@ -33,3 +36,4 @@ async function loadJoinCodes(rotateTeam=null){
  finally{actionBusy=false;$('sessionSelect').disabled=false;$('loadJoinCodes').disabled=false;await loadTeacher()}
 }
 $('loadJoinCodes').onclick=()=>loadJoinCodes();
+

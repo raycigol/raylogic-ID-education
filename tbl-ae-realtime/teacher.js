@@ -52,13 +52,20 @@ async function loadTeacher(){
   ]);
   if(nonce!==refreshNonce||teacherSession!==target)return;
   if(ee)throw ee;if(es)throw es;
+  const roster=await rpc('tbl_session_roster',{p_session_id:target});
+  if(nonce!==refreshNonce||teacherSession!==target)return;
+  renderParticipation(roster,target,name);
+  const active=new Set(roster.teams.filter(t=>t.active).map(t=>t.team_id)),total=active.size;
   const area=$('stages');area.replaceChildren();
   for(const s of st||[]){
-   const count=(sub||[]).filter(x=>x.stage_number===s.stage_number).length;
+   const submitted=new Set((sub||[]).filter(x=>x.stage_number===s.stage_number&&active.has(x.team_id)).map(x=>x.team_id));
+   const count=submitted.size;
+   const missing=roster.teams.filter(t=>t.active&&!submitted.has(t.team_id)).map(t=>t.team_name);
    const row=document.createElement('div');row.className='stage';
-   const label=document.createElement('div');label.textContent='Stage '+s.stage_number+'｜'+count+'/13 已提交｜'+(s.is_revealed?'已公布':s.is_locked?'已鎖定':s.is_open?'開放中':'未開放');row.append(label);
+   const label=document.createElement('div');label.textContent='Stage '+s.stage_number+'｜'+count+'/'+total+' 已提交｜'+(s.is_revealed?'已公布':s.is_locked?'已鎖定':s.is_open?'開放中':'未開放');row.append(label);
+   if(missing.length){const detail=document.createElement('p');detail.textContent='尚未提交：'+missing.join('、');row.append(detail)}
    const buttons=document.createElement('div');
-   const operations=[['開放','tbl_teacher_open_stage',!s.is_open&&!s.is_locked&&!s.is_revealed],['鎖定','tbl_teacher_lock_stage',s.is_open&&!s.is_locked&&count===13],['公布','tbl_teacher_publish_stage',s.is_locked&&!s.is_revealed]];
+   const operations=[['開放','tbl_teacher_open_stage',!s.is_open&&!s.is_locked&&!s.is_revealed],['鎖定','tbl_teacher_lock_stage',s.is_open&&!s.is_locked&&total>0&&count===total],['公布','tbl_teacher_publish_stage',s.is_locked&&!s.is_revealed]];
    for(const [label,fn,allow] of operations){
     const b=document.createElement('button');b.className='secondary';b.textContent=label;b.disabled=!allow;
     b.onclick=async()=>{
@@ -72,11 +79,11 @@ async function loadTeacher(){
     };buttons.append(b)
    }
    if(isTestSession(target,name)){
-    const simulate=document.createElement('button');simulate.className='secondary';simulate.textContent='模擬 13 組提交（TEST）';
-    simulate.disabled=!s.is_open||s.is_locked||s.is_revealed||count>=13;
+    const simulate=document.createElement('button');simulate.className='secondary';simulate.textContent='模擬 '+total+' 組提交（TEST）';
+    simulate.disabled=!s.is_open||s.is_locked||s.is_revealed||total===0||count>=total;
     simulate.onclick=async()=>{
      if(actionBusy||nonce!==refreshNonce||teacherSession!==target||!isTestSession(target,teacherTitle))return;
-     if(!confirm('僅限 TEST 課堂：'+name+'\nStage '+s.stage_number+'：為未提交的組別補上模擬答案 A，補齊 13 組。\n既有答案不會覆寫，確定執行？'))return;
+     if(!confirm('僅限 TEST 課堂：'+name+'\nStage '+s.stage_number+'：為未提交的組別補上模擬答案 A，補齊 '+total+' 組。\n既有答案不會覆寫，確定執行？'))return;
      actionBusy=true;refreshNonce++;$('sessionSelect').disabled=true;
      try{
       const inserted=await rpc('tbl_teacher_simulate_test_submissions',{p_session_id:target,p_stage:s.stage_number});
@@ -90,11 +97,12 @@ async function loadTeacher(){
   }
   const result=await rpc('tbl_published_scores',{p_session_id:target});
   if(nonce===refreshNonce&&teacherSession===target)showScores(result);
- }catch(e){if(nonce===refreshNonce){$('stages').replaceChildren();$('scoreRows').replaceChildren();say(errorText(e),'error')}}finally{busy=false;if(pendingRefresh||nonce!==refreshNonce){pendingRefresh=false;loadTeacher()}}
+ }catch(e){if(nonce===refreshNonce){clearParticipation();$('stages').replaceChildren();$('scoreRows').replaceChildren();say(errorText(e),'error')}}finally{busy=false;if(pendingRefresh||nonce!==refreshNonce){pendingRefresh=false;loadTeacher()}}
 }
 $('sessionSelect').onchange=()=>{
  if(actionBusy){$('sessionSelect').value=teacherSession;return}
  teacherSession=$('sessionSelect').value;
+ clearParticipation();
  if(typeof clearTeacherBuzzer==='function')clearTeacherBuzzer();
  clearJoinCodes();
  clearRepresentatives();
@@ -109,3 +117,4 @@ $('sessionSelect').onchange=()=>{
 $('login').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){say(errorText(error),'error');return}refreshNonce++;teacherSession=null;sessionStorage.removeItem(SESSION_KEY);say('教師已登入','good');loadTeacher()};
 $('logout').onclick=async()=>{if(actionBusy)return;refreshNonce++;teacherSession=null;teacherTitle='';if(typeof clearTeacherBuzzer==='function')clearTeacherBuzzer();clearJoinCodes();clearRepresentatives();clearAnswerReview();sessionStorage.removeItem(SESSION_KEY);$('control').classList.add('hide');$('scores').classList.add('hide');$('stages').replaceChildren();$('scoreRows').replaceChildren();await sb.auth.signOut();say('已登出')};
 loadTeacher();setInterval(()=>{if(!document.hidden)loadTeacher()},4000);
+

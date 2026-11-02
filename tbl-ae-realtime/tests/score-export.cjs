@@ -21,12 +21,12 @@ const flush=async()=>{for(let count=0;count<10;count++)await new Promise(resolve
  context.rpc=exportRpc;
  vm.runInContext("let teacherSession='TEST-id',teacherTitle='TEST class',actionBusy=false,refreshNonce=0;async function loadTeacher(){}",context);
  vm.runInContext(fs.readFileSync(path.join(directory,'teacher-export.js'),'utf8'),context);
- const fixture=[{team_number:1,team_name:'第 1 組',stage_number:1,score:10},{team_number:2,team_name:'第 2 組',stage_number:1,score:10},{team_number:3,team_name:'第 3 組',stage_number:1,score:0}];
+ const fixture=[{team_number:1,team_name:'第 1 組',stage_number:1,score:10},{team_number:2,team_name:'第 2 組',stage_number:1,score:10},{team_number:3,team_name:'第 3 組',stage_number:1,score:0},{team_number:4,team_name:'尚未公布的第 4 組',stage_number:null,score:null}];
  context.fixture=fixture;
  const output=vm.runInContext("buildScoreExport('TEST-id','測試課堂',fixture,new Date('2026-10-31T16:05:06Z'))",context);
  assert.equal(output.content.charCodeAt(0),0xfeff);
  assert.ok(output.filename.includes('20261101-000506'));
- const rows=output.content.slice(1).trimEnd().split('\r\n');assert.equal(rows.length,14);
+ const rows=output.content.slice(1).trimEnd().split('\r\n');assert.equal(rows.length,5);
  assert.ok(rows[1].includes('"10","","","","10","1"'));
  assert.ok(rows[3].includes('"0","","","","0","3"'));
  assert.ok(rows[4].includes('"","","","","","","2026-11-01 00:05:06"'));
@@ -48,3 +48,4 @@ const flush=async()=>{for(let count=0;count<10;count++)await new Promise(resolve
  fail=false;user={id:'student',is_anonymous:true};const before=calls.length;await context.exportTeacherScores();assert.equal(calls.length,before);
  console.log('PASS: selected-session fresh RPC; unpublished blanks/zero/tie ranking; UTF-8 BOM; Taipei timestamp; CSV escaping/formula protection; stale/failed/student exports blocked; URL cleanup');
 })().catch(error=>{console.error(error);process.exitCode=1});
+

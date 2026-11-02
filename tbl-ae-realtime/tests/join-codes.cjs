@@ -12,7 +12,7 @@ const context=vm.createContext({
  qrcode:makeQr,document:{createElement:()=>new Element()},
  $:id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id)},
  confirm:()=>true,say(){},errorText:error=>error.message,
- rpc:async(name,args)=>{calls.push([name,args]);return [{team_id:'TEST-team',team_name:'TEST 1',short_code:'K7M4P9'}]}
+ rpc:async(name,args)=>{calls.push([name,args]);if(name==='tbl_session_roster')return {teams:[{team_id:'TEST-team',active:true}]};return [{team_id:'TEST-team',team_name:'TEST 1',short_code:'K7M4P9'}]}
 });
 (async()=>{
  vm.runInContext(fs.readFileSync(path.join(directory,'join-codes.js'),'utf8'),context);
@@ -36,3 +36,4 @@ const context=vm.createContext({
  assert.equal(nodes.get('joinCodes').children.length,0);
  console.log('PASS: short-code validation, UUID compatibility, QR link and image, rotation target, stale classroom guard');
 })().catch(error=>{console.error(error);process.exitCode=1});
+
