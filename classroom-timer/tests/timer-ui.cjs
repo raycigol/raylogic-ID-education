@@ -10,7 +10,7 @@ function page(nowStart=1000){
  let draw;const RealDate=Date;class Clock extends RealDate{static now(){return now}}
  const context=vm.createContext({ClassroomTimer:require(path.join(root,'timer-core.js')),document,window:{addEventListener(){}},sessionStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value)},Date:Clock,Intl,confirm:()=>confirmed,setInterval:fn=>draw=fn});
  vm.runInContext(fs.readFileSync(path.join(root,'timer.js'),'utf8'),context);
- return {$,document,events,advance:ms=>{now+=ms;draw()},confirm:value=>confirmed=value};
+ return {$,document,events,now:()=>now,advance:ms=>{now+=ms;draw()},confirm:value=>confirmed=value};
 }
 let p=page();assert.equal(p.$('digits').textContent,'15:00');
 p.$('startPause').click();p.advance(3000);assert.equal(p.$('digits').textContent,'14:57');
@@ -28,4 +28,32 @@ const before=p.$('digits').textContent;p.$('minutes').value='0';p.$('seconds').v
 assert.equal(p.$('digits').textContent,before,'zero duration rejected without resetting timer');
 p.events.keydown({target:{closest:()=>({})},key:'r',code:'KeyR'});assert.equal(p.$('digits').textContent,before,'editing inputs does not trigger shortcuts');
 assert.deepEqual([...storage.keys()],['raylogic-classroom-timer-v1']);
+p.$('ae').click();assert.equal(p.$('digits').textContent,'06:00');assert.equal(p.$('aeSettings').hidden,false);
+assert.equal(p.$('nextSegment').hidden,false);
+p.$('startPause').click();p.confirm(false);p.$('nextSegment').click();p.$('aeStage2').click();
+assert.equal(p.$('digits').textContent,'06:00','cancelled AE advancement and stage jumps preserve active segment');
+p.confirm(true);p.advance(360001);assert.equal(p.$('digits').textContent,'00:00');
+assert.equal(p.$('aePart0').attributes['aria-pressed'],'true','time expiry does not auto advance');
+p.$('nextSegment').click();assert.equal(p.$('digits').textContent,'01:00');p.advance(10000);
+assert.equal(p.$('digits').textContent,'01:00','next segment loads without auto starting');
+p.$('ae').click();
+const schedule=[[6,1,5],[7,1,5],[8,1,6],[7,1,7]];let total=0;
+for(let s=0;s<4;s++)for(let part=0;part<3;part++){
+ const minutes=schedule[s][part];total+=minutes;
+ assert.equal(p.$('digits').textContent,String(minutes).padStart(2,'0')+':00');
+ assert.equal(p.$('aeStage'+s).attributes['aria-pressed'],'true');
+ assert.equal(p.$('aePart'+part).attributes['aria-pressed'],'true');
+ assert.equal(p.$('startPause').textContent,'開始計時');
+ if(s!==3||part!==2)p.$('nextSegment').click();
+}
+assert.equal(total,55);assert.equal(p.$('nextSegment').disabled,true);p.$('nextSegment').click();
+assert.equal(p.$('digits').textContent,'07:00','last segment never wraps around');
+p.$('aeStage2').click();p.$('aePart1').click();p.$('startPause').click();p.advance(10000);
+p=page(p.now()+5000);assert.equal(p.$('digits').textContent,'00:45');
+assert.equal(p.$('aeStage2').attributes['aria-pressed'],'true');assert.equal(p.$('aePart1').attributes['aria-pressed'],'true');
+p.$('clockMode').click();p.advance(5000);p.$('countdownMode').click();assert.equal(p.$('digits').textContent,'00:40');
+p.confirm(false);p.$('irat').click();assert.equal(p.$('aeSettings').hidden,false);
+p.confirm(true);p.$('irat').click();assert.equal(p.$('digits').textContent,'15:00');assert.equal(p.$('aeSettings').hidden,true);assert.equal(p.$('nextSegment').hidden,true);
+p.$('trat').click();assert.equal(p.$('digits').textContent,'25:00');
 console.log('PASS: start/pause; clock mode continues countdown; cancelled changes; custom duration; reload; finish; adjustments; projection; validation; keyboard editing guard; isolated storage');
+console.log('PASS: all 12 AE segments total 55 minutes; manual advance; cancellation; final boundary; stage/part selection and reload; clock continuity; RAT preset isolation');

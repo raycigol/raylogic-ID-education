@@ -3,3 +3,16 @@
 @media(min-width:1500px){.display{min-height:720px}}@media(max-width:1000px){.shell{padding:24px}main{grid-template-columns:minmax(0,1fr) 250px;gap:16px}.display{padding:24px;min-height:580px}.digits{font-size:12vw}.settings{padding-left:4px}.brand span{display:none}.mode-tabs button{padding:9px 16px}}
 @media(max-width:740px){.shell{padding:18px 14px}.topbar{gap:10px;flex-wrap:wrap;margin-bottom:20px}.brand{font-size:15px}.topbar>.quiet{padding:8px}.mode-tabs{order:3;width:100%;justify-content:center}.mode-tabs button{flex:1}main{grid-template-columns:1fr}.display{min-height:480px;padding:22px 18px;border-radius:18px}.digits{font-size:24vw}.display-top h1{font-size:25px}.display-top h1 span{display:block;font-size:13px;margin:5px 0 0}.live-clock time{font-size:18px}.timer-controls{gap:6px}.primary{min-width:135px}.timer-controls button{padding:11px 13px}.divider{display:none}.settings{padding:18px 6px}.settings-heading{margin-bottom:16px}.phase-buttons small{font-size:12px}body.clock .digits{font-size:18vw}footer{gap:12px}body.projection .display{min-height:calc(100dvh - 180px)}body.projection .digits{font-size:24vw}body.projection.clock .digits{font-size:18vw}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.phase-buttons #ae{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;column-gap:14px;align-items:center}
+.phase-buttons #ae strong{grid-row:1/3}
+.ae-settings{border-top:1px solid var(--line);margin-top:22px;padding-top:12px}
+.ae-settings h3{font-size:14px;margin:0 0 12px}
+.ae-stages{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.ae-stages button,.ae-parts button{background:var(--panel);color:var(--text);border:1px solid var(--line);font-size:12px;padding:10px 5px}
+.ae-stages small{display:block;color:var(--muted);font-size:10px;margin-top:4px}
+.ae-stages [aria-pressed=true],.ae-parts [aria-pressed=true]{border-color:var(--mint);background:#21382f;color:var(--mint)}
+.ae-parts{display:grid;gap:7px}
+.ae-parts button{text-align:left;padding:10px 12px}
+.ae-plan{width:100%;border-collapse:collapse;font-size:11px;margin-top:12px}
+.ae-plan th,.ae-plan td{padding:8px 3px;text-align:center;border-bottom:1px solid var(--line)}
+main{align-items:start}
