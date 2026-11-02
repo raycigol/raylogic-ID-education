@@ -35,6 +35,12 @@ async function loadStudent(){
   const roster=await rpc('tbl_session_roster',{p_session_id:current.session_id});
   if(nonce!==studentNonce)return;
   const participating=roster.teams.some(t=>t.team_number===current.team_number&&t.active);
+  let publishedScores=[],scoreLoadFailed=false;
+  if(rows.some(row=>row.session_id===current.session_id&&row.is_revealed)){
+   try{publishedScores=await rpc('tbl_published_scores',{p_session_id:current.session_id})||[]}
+   catch(error){scoreLoadFailed=true}
+   if(nonce!==studentNonce)return;
+  }
   mySession=current.session_id;
   const session=mySession,name=current.team_name,title=sessionStorage.getItem(STUDENT_TITLE_KEY)||'';
   $('join').classList.add('hide');$('work').classList.remove('hide');$('teamName').textContent=(title?title+'｜':'')+name;
@@ -46,7 +52,12 @@ async function loadStudent(){
    const submitted=stage.my_answer?'本組已提交：'+stage.my_answer:'本組尚未提交';
    const detail=document.createElement('div');detail.textContent=submitted+(stage.my_answer?'｜鎖定前可修改':'');
    if(stage.is_locked)detail.textContent=submitted+'｜本階段已鎖定，不能修改';
-   if(stage.is_revealed)detail.textContent=submitted+'｜本階段分數已公布，可到成績頁查看';box.append(detail);
+   if(stage.is_revealed){
+    const result=publishedScores.find(row=>row.team_number===stage.team_number&&row.stage_number===stage.stage_number);
+    const score=result?.score;
+    detail.textContent=submitted+'｜'+(scoreLoadFailed?'得分暫時無法載入，稍後自動重試':score!==null&&score!==undefined&&Number.isFinite(Number(score))?'本階段得分：'+Number(score)+' 分':'本階段尚無得分紀錄');
+   }else detail.textContent+='｜得分：待教師公布';
+   box.append(detail);
    if(participating&&stage.is_open&&!stage.is_locked&&!stage.is_revealed){
     const choices=document.createElement('div');choices.className='choices';let selected=stage.my_answer||null;
     for(const answer of 'ABCDE'){
@@ -103,5 +114,3 @@ $('leaveBtn').onclick=async()=>{
  finally{studentBusy=false;$('leaveBtn').disabled=false}
 };
 loadStudent();setInterval(()=>{if(!document.hidden)loadStudent()},4000);
-
-
