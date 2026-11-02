@@ -7,8 +7,8 @@
 確認鎖定 RPC 固定要求 13 筆，前端分母及成績表也固定 13。
 公布 RPC 的四階段 AE 配分保持原樣，沒有修改。
 
-瀏覽器連線於匯出時中斷；尚未完整取得現行欄位、約束、RLS 與所有 RPC 快照，亦未在 Supabase 安裝或執行 TEST 操作。
-下列安裝前查核不可跳過。本機隔離 PostgreSQL 測試使用合成結構，不代表正式環境已驗證。
+已於 2026-11-02 完成 Supabase 現行欄位、外鍵／唯一約束、RLS 與表格權限查核，安裝遷移並通過實際 TEST 回滾驗收。另發現並移除 tbl_teams.team_number 的固定 13 上限，保留正整數限制。
+遷移前後全部 12 張既有 tbl_* 表的筆數與內容指紋完全相同；包含正式與 TEST、代表、加入碼、更正及搶答紀錄。新增的參與名單表沒有預填任何課堂設定。
 
 ## 設計與資料保護
 
@@ -46,7 +46,9 @@ where n.nspname='public' and p.proname in
 不要重跑舊的 representatives／學生狀態／加入／成績 SQL 覆蓋新版 RPC。若需重裝基礎 SQL，最後完整重跑 session-participation.sql。
 本次不提供刪表式回復：已設定較少組數後退回固定 13 的程式可能再次錯鎖。若需回復，先停止課堂操作、保留資料，依安裝前匯出的函式與前端版本成套復原，勿刪除名單或答案。
 
-## TEST 驗收清單（尚未在正式 Supabase 執行）
+## TEST 驗收（已於 Supabase 執行）
+
+	ests/participation-live.sql 已通過 13／16（第 8 組缺席）／17 組、S1–S4 開放／缺交拒鎖／鎖定／公布、原配分、停用加入／提交、過期名單及權限檢查。所有測試異動完整回滾；新增的臨時 14–17 組未保留。下列為後續人工跨裝置檢查清單。
 
 只操作 ID `0f82561e-c980-44cb-8a5d-091dbc9c71e6`、名稱 `2026 ID Block TBL — TEST`。
 既有 TEST 若有需保留的答案／分數，先匯出，不要逕行重置。13 組現場可驗證 13→12；16／17 需要原本就有對應組別的測試 fixture，不會由本功能自動建立。
@@ -68,3 +70,4 @@ npm install --prefix /temporary/test-runtime @electric-sql/pglite
 node tbl-ae-realtime/tests/participation-db.cjs /temporary/test-runtime/node_modules/@electric-sql/pglite
 node tbl-ae-realtime/tests/participation-ui.cjs
 ```
+

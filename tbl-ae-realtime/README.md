@@ -6,7 +6,7 @@
 
 ## 每堂課參與組別設定
 
-安裝及驗收請見 [PARTICIPATION-DEPLOYMENT.md](PARTICIPATION-DEPLOYMENT.md)。先安裝後端遷移，再部署前端；此版本尚未在實際 Supabase 完成安裝與 TEST 驗收。
+安裝及驗收請見 [PARTICIPATION-DEPLOYMENT.md](PARTICIPATION-DEPLOYMENT.md)。先安裝後端遷移，再部署前端；已於 2026-11-02 完成 Supabase 結構查核、遷移與 TEST 回滾驗收，全部既有課堂資料指紋保持相同。
 
 ## 流程
 1. Supabase Authentication 中已啟用 Anonymous Sign-Ins，且建立教師 email/password。
@@ -99,4 +99,5 @@
 - 匯出時暫停教師操作與課堂切換；登入、課堂變動或讀取失敗時不下載。重置前先自行匯出所需成績，匯出功能不會自動重置或公布分數。
 - 測試：`node tbl-ae-realtime/tests/score-export.cjs`。
 - 測試：`node tbl-ae-realtime/tests/join-codes.cjs`、`node tbl-ae-realtime/tests/scores-session.cjs`，以及前述學生／教師回歸測試。資料庫已以 TEST 回滾驗證加入、輪替、失效碼、嘗試限制與正式課堂隔離。
+
 
