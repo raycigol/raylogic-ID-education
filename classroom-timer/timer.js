@@ -2,7 +2,7 @@
  'use strict';
  const $=id=>document.getElementById(id),{Timer,format,validSeconds}=ClassroomTimer;
  const KEY='raylogic-classroom-timer-v1',labels={irat:['iRAT','個人作答','個人思考，獨立作答。'],trat:['tRAT','小組作答','小組討論，一起作答。']};
- let timer=new Timer(600),stage='irat',mode='countdown',audio=null;
+ let timer=new Timer(900),stage='irat',mode='countdown',audio=null;
  try{
   const saved=JSON.parse(sessionStorage.getItem(KEY)||'null'),restored=Timer.restore(saved?.timer,Date.now());
   if(restored){timer=restored;stage=saved.stage==='trat'?'trat':'irat';mode=saved.mode==='clock'?'clock':'countdown';$('sound').checked=saved.sound===true}
@@ -47,7 +47,7 @@
  }
  $('startPause').onclick=startPause;
  $('reset').onclick=()=>{if(!approveReset())return;timer.reset();feedback('已重設，尚未開始計時。');persist();render()};
- $('irat').onclick=()=>setDuration(600,'irat');$('trat').onclick=()=>setDuration(900,'trat');
+ $('irat').onclick=()=>setDuration(900,'irat');$('trat').onclick=()=>setDuration(1500,'trat');
  $('durationForm').onsubmit=event=>{
   event.preventDefault();const mins=$('minutes').value.trim(),secs=$('seconds').value.trim(),m=Number(mins),s=Number(secs);
   if(!mins||!secs||!Number.isInteger(m)||!Number.isInteger(s)||m<0||m>5999||s<0||s>59){feedback('請填整數：分鐘 0–5999，秒 0–59。',true);return}

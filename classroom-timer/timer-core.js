@@ -5,7 +5,7 @@
  function validSeconds(value){return Number.isInteger(value)&&value>=1&&value<=MAX}
  function format(seconds){const n=Math.max(0,Math.ceil(seconds));return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}
  class Timer{
-  constructor(seconds=600){if(!validSeconds(seconds))throw Error('Invalid duration');this.duration=seconds;this.left=seconds;this.deadline=null;this.phase='ready'}
+  constructor(seconds=900){if(!validSeconds(seconds))throw Error('Invalid duration');this.duration=seconds;this.left=seconds;this.deadline=null;this.phase='ready'}
   remaining(now){return this.phase==='running'?Math.max(0,(this.deadline-now)/1000):this.left}
   tick(now){if(this.phase==='running'&&this.remaining(now)<=0){this.phase='finished';this.left=0;this.deadline=null;return true}return false}
   start(now){if(this.phase==='running'||this.phase==='finished')return;this.deadline=now+this.left*1000;this.phase='running'}

@@ -12,12 +12,12 @@ function page(nowStart=1000){
  vm.runInContext(fs.readFileSync(path.join(root,'timer.js'),'utf8'),context);
  return {$,document,events,advance:ms=>{now+=ms;draw()},confirm:value=>confirmed=value};
 }
-let p=page();assert.equal(p.$('digits').textContent,'10:00');
-p.$('startPause').click();p.advance(3000);assert.equal(p.$('digits').textContent,'09:57');
-p.$('clockMode').click();assert.equal(p.$('timerControls').hidden,true);p.advance(5000);p.$('countdownMode').click();assert.equal(p.$('digits').textContent,'09:52','clock mode does not pause countdown');
-p.$('startPause').click();p.advance(10000);assert.equal(p.$('digits').textContent,'09:52','pause freezes remaining time');
-p.confirm(false);p.$('trat').click();assert.equal(p.$('digits').textContent,'09:52','cancelled stage switch preserves countdown');
-p.confirm(true);p.$('trat').click();assert.equal(p.$('digits').textContent,'15:00');
+let p=page();assert.equal(p.$('digits').textContent,'15:00');
+p.$('startPause').click();p.advance(3000);assert.equal(p.$('digits').textContent,'14:57');
+p.$('clockMode').click();assert.equal(p.$('timerControls').hidden,true);p.advance(5000);p.$('countdownMode').click();assert.equal(p.$('digits').textContent,'14:52','clock mode does not pause countdown');
+p.$('startPause').click();p.advance(10000);assert.equal(p.$('digits').textContent,'14:52','pause freezes remaining time');
+p.confirm(false);p.$('trat').click();assert.equal(p.$('digits').textContent,'14:52','cancelled stage switch preserves countdown');
+p.confirm(true);p.$('trat').click();assert.equal(p.$('digits').textContent,'25:00');
 p.$('minutes').value='0';p.$('seconds').value='5';p.$('durationForm').onsubmit({preventDefault(){}});
 assert.equal(p.$('digits').textContent,'00:05');p.$('startPause').click();
 p=page(21000);assert.equal(p.$('digits').textContent,'00:03','reload resumes saved deadline');
