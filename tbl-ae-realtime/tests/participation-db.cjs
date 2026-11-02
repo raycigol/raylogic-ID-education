@@ -1,0 +1,75 @@
+// Isolated synthetic PostgreSQL only. Never connects to Supabase.
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {PGlite}=require(path.resolve(process.argv[2]));
+(async()=>{
+ const db=new PGlite(),root=path.join(__dirname,'../sql');
+ await db.exec(`create role anon;create role authenticated;create schema auth;
+ create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ create function auth.jwt() returns jsonb language sql as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
+ create table tbl_sessions(id uuid primary key,title text,teacher_id uuid);
+ create table tbl_teams(id uuid primary key,session_id uuid references tbl_sessions,team_number integer,team_name text);
+ create table tbl_stages(session_id uuid,stage_number integer,is_open boolean default false,is_locked boolean default false,is_revealed boolean default false,primary key(session_id,stage_number));
+ create table tbl_team_members(session_id uuid,team_id uuid,user_id uuid);
+ create table tbl_team_invites(team_id uuid,join_code uuid);
+ create table tbl_submissions(id uuid default gen_random_uuid(),session_id uuid,team_id uuid,stage_number integer,answer text,submitted_by uuid,submitted_at timestamptz default now(),unique(session_id,team_id,stage_number));
+ create table tbl_stage_results(session_id uuid,team_id uuid,stage_number integer,score numeric);
+ `);
+ const migration=fs.readFileSync(path.join(root,'session-participation.sql'),'utf8');
+ await db.exec(migration);await db.exec(migration);
+ const submit=fs.readFileSync(path.join(root,'representatives.sql'),'utf8').split('create or replace function public.tbl_submit_answer')[1].replace(/commit;\s*$/,'');
+ await db.exec('create or replace function public.tbl_submit_answer'+submit);
+ const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
+ const test='0f82561e-c980-44cb-8a5d-091dbc9c71e6',formal=id(1),teacher=id(2),student=id(3);
+ const q=async(s,p=[])=>(await db.query(s,p)).rows;
+ const auth=async(user,anonymous=false)=>q("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claims',$2,false)",[user||'',JSON.stringify({is_anonymous:anonymous})]);
+ await q("insert into tbl_sessions values($1,'2026 ID Block TBL — TEST',$3),($2,'FORMAL',$3)",[test,formal,teacher]);
+ for(const session of [test,formal])for(let stage=1;stage<=4;stage++)await q('insert into tbl_stages(session_id,stage_number,is_open) values($1,$2,$3)',[session,stage,stage===1]);
+ for(let n=1;n<=17;n++)await q('insert into tbl_teams values($1,$2,$3,$4)',[id(100+n),test,n,'Team '+n]);
+ await q("insert into tbl_teams values($1,$2,1,'Formal team')",[id(200),formal]);
+ const snapshot=async()=>JSON.stringify(await q(`select (select jsonb_agg(t) from tbl_stages t where session_id=$1) stages,(select jsonb_agg(t) from tbl_submissions t where session_id=$1) answers,(select jsonb_agg(t) from tbl_stage_results t where session_id=$1) scores`,[formal]));
+ const before=await snapshot();
+ const roster=async()=>(await q('select tbl_session_roster($1) r',[test]))[0].r;
+ const set=async(ids,rev)=>(await q('select tbl_teacher_set_participation($1,$2,$3,$4)',[test,ids,rev,'2026 ID Block TBL — TEST']));
+ const lock=()=>q('select tbl_teacher_lock_stage($1,1)',[test]);
+ await auth(null);await assert.rejects(roster,/access denied/);
+ await auth(student,true);await assert.rejects(()=>set([id(101)],0),/Teacher/);
+ await auth(teacher);assert.equal((await roster()).target_count,17);
+ await assert.rejects(()=>set([],0),/at least one/);await assert.rejects(()=>set([id(200)],0),/Invalid/);await assert.rejects(()=>set([id(101),id(101)],0),/duplicate/);
+ const all=Array.from({length:17},(_,i)=>id(101+i)),sixteen=all.filter(x=>x!==id(108));
+ await q('insert into tbl_team_members values($1,$2,$3)',[test,id(108),student]);
+ await set(sixteen,0);assert.equal((await roster()).target_count,16);
+ await assert.rejects(()=>set(all,0),/Roster changed/);
+ await db.exec(migration);assert.equal((await roster()).target_count,16,'rerun preserves saved roster');
+ await assert.rejects(lock,/0 \/ 16/);
+ await q('insert into tbl_team_invites values($1,$2)',[id(108),id(308)]);
+ await auth(student,true);await assert.rejects(()=>q('select * from tbl_join_team($1)',[id(308)]),/not participating/);
+ assert.ok((await q('select * from tbl_student_status()')).every(r=>r.is_open===false),'existing inactive representative cannot see open controls');
+ await assert.rejects(()=>q("select * from tbl_submit_answer($1,1,'A')",[test]),/not participating/);
+ assert.equal((await q('select count(*)::int n from tbl_team_members where user_id=$1',[student]))[0].n,1,'membership retained');
+ await auth(teacher);
+ await assert.rejects(()=>q("insert into tbl_submissions(session_id,team_id,stage_number,answer) values($1,$2,1,'A')",[test,id(108)]),/not participating/);
+ for(const team of sixteen.slice(0,15))await q("insert into tbl_submissions(session_id,team_id,stage_number,answer) values($1,$2,1,'A')",[test,team]);
+ await assert.rejects(lock,/15 \/ 16/);
+ await assert.rejects(()=>set(sixteen.slice(1),1),/has answers/);
+ await q('select tbl_teacher_simulate_test_submissions($1,1)',[test]);
+ assert.equal((await q('select count(*)::int n from tbl_submissions where session_id=$1',[test]))[0].n,16);
+ assert.equal((await q('select tbl_teacher_simulate_test_submissions($1,1) n',[test]))[0].n,0);
+ await lock();await assert.rejects(()=>set(all,1),/Locked/);
+ await assert.rejects(()=>q('select tbl_teacher_simulate_test_submissions($1,1)',[formal]),/restricted/);
+ // No published result: active roster placeholders and no fabricated scores.
+ let scores=await q('select * from tbl_published_scores($1)',[test]);assert.equal(scores.length,16);assert.ok(scores.every(r=>r.score===null));
+ await q('insert into tbl_stage_results values($1,$2,1,10)',[test,id(101)]);
+ scores=await q('select * from tbl_published_scores($1)',[test]);assert.ok(scores.every(r=>r.score===null),'unrevealed score hidden');
+ await q('update tbl_stages set is_revealed=true where session_id=$1 and stage_number=1',[test]);
+ scores=await q('select * from tbl_published_scores($1)',[test]);assert.equal(scores.find(r=>r.team_number===1).score,'10');
+ // Synthetic fixture reset only; never execute this test against a live DB.
+ await q('delete from tbl_stage_results where session_id=$1',[test]);await q('delete from tbl_submissions where session_id=$1',[test]);await q('update tbl_stages set is_locked=false,is_revealed=false,is_open=true where session_id=$1 and stage_number=1',[test]);
+ for(const count of [13,17]){
+  const r=await roster();await set(all.slice(0,count),r.revision);
+  await q('select tbl_teacher_simulate_test_submissions($1,1)',[test]);await lock();
+  assert.equal((await q('select count(*)::int n from tbl_submissions where session_id=$1',[test]))[0].n,count);
+  await q('delete from tbl_submissions where session_id=$1',[test]);await q('update tbl_stages set is_locked=false,is_open=true where session_id=$1 and stage_number=1',[test]);
+ }
+ assert.equal(await snapshot(),before,'formal session untouched');
+ await db.close();console.log('PASS: repeat migration; 13/16/17; absent middle team; partial lock denied; permissions; stale roster; answer preservation; frozen roster; inactive join/submission; TEST-only simulation; score privacy; formal isolation');
+})().catch(e=>{console.error(e);process.exitCode=1});

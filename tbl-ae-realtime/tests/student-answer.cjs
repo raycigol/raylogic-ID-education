@@ -8,7 +8,7 @@ class Element{
 const flush=async()=>{for(let n=0;n<10;n++)await new Promise(resolve=>setImmediate(resolve))};
 (async()=>{
  const source=process.argv[2]||path.join(__dirname,'../student.js'),nodes=new Map(),calls=[];
- const stage=(number,answer,flags={})=>({session_id:'TEST',team_name:'第 1 組',stage_number:number,my_answer:answer,is_open:true,is_locked:false,is_revealed:false,...flags});
+ const stage=(number,answer,flags={})=>({session_id:'TEST',team_number:1,team_name:'第 1 組',stage_number:number,my_answer:answer,is_open:true,is_locked:false,is_revealed:false,...flags});
  let rows=[stage(1,'A'),stage(2,'C',{is_locked:true}),stage(3,'E',{is_locked:true,is_revealed:true}),stage(4,null,{is_locked:true})];
  const context=vm.createContext({
   document:{hidden:false,createElement:()=>new Element()},$:id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id)},
@@ -16,7 +16,7 @@ const flush=async()=>{for(let n=0;n<10;n++)await new Promise(resolve=>setImmedia
   window:{location:new URL('https://example.test/student.html'),history:{replaceState(){}}},
   sessionStorage:{getItem:key=>key==='tbl-ae-realtime-student-session'?'TEST':null},
   sb:{auth:{getUser:async()=>({data:{user:{id:'student',is_anonymous:true}}})}},
-  rpc:async(name,args)=>{calls.push([name,args]);assert.equal(name,'tbl_student_status');return [stage(1,'D',{session_id:'FORMAL'}),...rows]}
+  rpc:async(name,args)=>{calls.push([name,args]);if(name==='tbl_session_roster')return {teams:[{team_number:1,active:true}]};assert.equal(name,'tbl_student_status');return [stage(1,'D',{session_id:'FORMAL'}),...rows]}
  });
  vm.runInContext(fs.readFileSync(path.join(path.dirname(source),'join-codes.js'),'utf8'),context);
  vm.runInContext(fs.readFileSync(source,'utf8'),context);await flush();
@@ -36,6 +36,7 @@ const flush=async()=>{for(let n=0;n<10;n++)await new Promise(resolve=>setImmedia
  rows=[stage(1,null,{is_open:false})];await vm.runInContext('loadStudent()',context);
  assert.equal(boxes().length,1);assert.equal(boxes()[0].children[1].textContent,'本組尚未提交');
  assert.equal(boxes()[0].children.length,2);
- assert.ok(calls.every(call=>call[0]==='tbl_student_status'),'read-only status API only');
+ assert.ok(calls.every(call=>['tbl_student_status','tbl_session_roster'].includes(call[0])),'read-only status API only');
  console.log('PASS: accepted own answers persist after lock/reveal, edits disabled, reset clears display, classroom scope preserved');
 })().catch(error=>{console.error(error);process.exitCode=1});
+

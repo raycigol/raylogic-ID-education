@@ -32,6 +32,9 @@ async function loadStudent(){
   const preferred=sessionStorage.getItem(STUDENT_SESSION_KEY);
   const current=preferred?rows.find(row=>row.session_id===preferred):rows[0];
   if(!current){clearStudent();say('找不到目前選擇的課堂，請離開組別並重新加入。','error');return}
+  const roster=await rpc('tbl_session_roster',{p_session_id:current.session_id});
+  if(nonce!==studentNonce)return;
+  const participating=roster.teams.some(t=>t.team_number===current.team_number&&t.active);
   mySession=current.session_id;
   const session=mySession,name=current.team_name,title=sessionStorage.getItem(STUDENT_TITLE_KEY)||'';
   $('join').classList.add('hide');$('work').classList.remove('hide');$('teamName').textContent=(title?title+'｜':'')+name;
@@ -44,7 +47,7 @@ async function loadStudent(){
    const detail=document.createElement('div');detail.textContent=submitted+(stage.my_answer?'｜鎖定前可修改':'');
    if(stage.is_locked)detail.textContent=submitted+'｜本階段已鎖定，不能修改';
    if(stage.is_revealed)detail.textContent=submitted+'｜本階段分數已公布，可到成績頁查看';box.append(detail);
-   if(stage.is_open&&!stage.is_locked&&!stage.is_revealed){
+   if(participating&&stage.is_open&&!stage.is_locked&&!stage.is_revealed){
     const choices=document.createElement('div');choices.className='choices';let selected=stage.my_answer||null;
     for(const answer of 'ABCDE'){
      const button=document.createElement('button');button.textContent=answer;
@@ -65,6 +68,7 @@ async function loadStudent(){
    }
    area.append(box);
   }
+  if(!participating){say('本組未列入這堂課的參與名單，請聯絡教師。原身份與答案保留。','error');return}
   say('已加入 '+name+'。'+(scannedCode?'掃碼不會自動切換組別；如要改組，請先離開組別。':'請先確認組別，錯誤時按「離開組別／重新加入」。'),'good');
  }catch(error){say(errorText(error),'error')}finally{refreshing=false}
 }
@@ -99,4 +103,5 @@ $('leaveBtn').onclick=async()=>{
  finally{studentBusy=false;$('leaveBtn').disabled=false}
 };
 loadStudent();setInterval(()=>{if(!document.hidden)loadStudent()},4000);
+
 

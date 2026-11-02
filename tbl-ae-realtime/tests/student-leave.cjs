@@ -14,7 +14,7 @@ const flush=async()=>{for(let count=0;count<10;count++)await new Promise(resolve
   URL,URLSearchParams,window:{location:new URL('https://example.test/tbl/student.html'),history:{replaceState(){}}},
   sessionStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},
   sb:{auth:{getUser:async()=>({data:{user},error:user?null:{name:'AuthSessionMissingError',message:'Auth session missing!',status:400}}),signOut:async options=>{calls.push(['logout',options]);user=null;return {}},signInAnonymously:async()=>{calls.push(['anonymous-sign-in']);user={id:'new',is_anonymous:true};return {data:{user}}}}},
-  rpc:async(name,args)=>{calls.push([name,args]);if(name==='tbl_student_status'){if(hold){hold=false;await new Promise(resolve=>{delay=resolve})}return [{session_id:'TEST',team_name:'TEST 1',stage_number:1,is_open:true,is_locked:false,is_revealed:false}]}if(name==='tbl_join_with_code')return {ok:true,session_id:'TEST',team_name:'TEST 1',title:'TEST'};return []}
+  rpc:async(name,args)=>{calls.push([name,args]);if(name==='tbl_session_roster')return {teams:[{team_number:1,active:true}]};if(name==='tbl_student_status'){if(hold){hold=false;await new Promise(resolve=>{delay=resolve})}return [{session_id:'TEST',team_number:1,team_name:'TEST 1',stage_number:1,is_open:true,is_locked:false,is_revealed:false}]}if(name==='tbl_join_with_code')return {ok:true,session_id:'TEST',team_name:'TEST 1',title:'TEST'};return []}
  });
  const source=process.argv[2]||__dirname+'/../student.js';
  vm.runInContext(fs.readFileSync(require('node:path').join(require('node:path').dirname(source),'join-codes.js'),'utf8'),context);
@@ -41,3 +41,4 @@ const flush=async()=>{for(let count=0;count<10;count++)await new Promise(resolve
  assert.equal(calls.filter(call=>call[0]==='anonymous-sign-in').length,signIns);
  console.log('PASS: missing-session anonymous signup, student logout/rejoin, stale requests blocked, teacher and network errors preserved');
 })().catch(error=>{console.error(error);process.exitCode=1});
+

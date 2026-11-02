@@ -4,11 +4,15 @@
 學生：https://raycigol.github.io/raylogic-ID-education/tbl-ae-realtime/student.html
 成績：https://raycigol.github.io/raylogic-ID-education/tbl-ae-realtime/scores.html
 
+## 每堂課參與組別設定
+
+安裝及驗收請見 [PARTICIPATION-DEPLOYMENT.md](PARTICIPATION-DEPLOYMENT.md)。先安裝後端遷移，再部署前端；此版本尚未在實際 Supabase 完成安裝與 TEST 驗收。
+
 ## 流程
 1. Supabase Authentication 中已啟用 Anonymous Sign-Ins，且建立教師 email/password。
 2. 由教師使用 SQL Editor 私下將每組 tbl_team_invites.join_code 提供該組代表（不要將清單放進 GitHub）。
 3. 教師登入 teacher.html 開放 Stage 1。學生在 student.html 輸入代碼加入。
-4. 各組選 A–E 提交，教師端每 4 秒更新提交數；13/13 後才能鎖定。
+4. 各組選 A–E 提交，教師端每 4 秒更新提交數；全部參與組別提交 後才能鎖定。
 5. 教師鎖定並按公布，成績頁才能看見該階段分數，下一 Stage 才能開啟。
 6. 學生頁不顯示病例、答案解析或正解。
 
@@ -22,8 +26,8 @@
 
 ## TEST 模擬提交工具
 - 僅指定 TEST 課堂 `0f82561e-c980-44cb-8a5d-091dbc9c71e6` 且名稱為 `2026 ID Block TBL — TEST` 才顯示按鈕。
-- 教師先開放階段，再按該階段「模擬 13 組提交（TEST）」並確認；為尚未提交的組別補答案 A，保留既有答案。這是實際測試資料，會納入 TEST 鎖定與計分。
-- 未開放、已鎖定、已公布或已滿 13 組時停用；不自動開放、鎖定、公布或清除資料。
+- 教師先開放階段，再按該階段「模擬參與組別提交（TEST）」並確認；為尚未提交的組別補答案 A，保留既有答案。這是實際測試資料，會納入 TEST 鎖定與計分。
+- 未開放、已鎖定、已公布或啟用組別已全數提交時停用；不自動開放、鎖定、公布或清除資料。
 - 新環境先在 Supabase SQL Editor 執行 `sql/test-simulation.sql`。伺服器獨立檢查固定 TEST ID、名稱、教師擁有權、非匿名登入及階段狀態，正式課堂 ID 即使直接呼叫也會拒絕。
 - 模擬列的 `submitted_by` 是操作教師；不建立學生帳號、不讀取或公開組別加入代碼。重複呼叫不覆寫答案、不增加重複列。
 - 前端回歸測試：`node tbl-ae-realtime/tests/teacher-session.cjs`。
@@ -88,10 +92,11 @@
 - 測試：`node tbl-ae-realtime/tests/student-answer.cjs`。
 
 ## 成績 CSV 匯出
-- 教師在「課程控制」的「已公布分數」區按「匯出成績 CSV」，下載目前所選課堂的 13 組成績。匯出時重新呼叫既有已公布成績與教師組別檢閱函式；不讀取未公布原始分數、不變更資料。
+- 教師在「課程控制」的「已公布分數」區按「匯出成績 CSV」，下載目前所選課堂的參與組別成績。匯出時重新呼叫既有已公布成績與教師組別檢閱函式；不讀取未公布原始分數、不變更資料。
 - 欄位：課堂名稱、課堂 ID、組別編號／名稱、S1–S4、已公布累計、排名、台北匯出時間。未公布階段留白；完全沒有公布分數的組別，累計及排名也留白；實際公布的 0 分仍保留。
 - 使用與成績表相同的累計及並列排名規則，組名取自所選課堂。檔名含課堂名稱、台北日期時間與課堂 ID 前八碼，方便區分 TEST／正式課堂。
 - CSV 使用 UTF-8 BOM 與 CRLF，供 Excel 開啟；逗號、引號與換行正確跳脫，文字欄位防止被當成試算表公式。不輸出答案、學生身分或加入碼。
 - 匯出時暫停教師操作與課堂切換；登入、課堂變動或讀取失敗時不下載。重置前先自行匯出所需成績，匯出功能不會自動重置或公布分數。
 - 測試：`node tbl-ae-realtime/tests/score-export.cjs`。
 - 測試：`node tbl-ae-realtime/tests/join-codes.cjs`、`node tbl-ae-realtime/tests/scores-session.cjs`，以及前述學生／教師回歸測試。資料庫已以 TEST 回滾驗證加入、輪替、失效碼、嘗試限制與正式課堂隔離。
+
