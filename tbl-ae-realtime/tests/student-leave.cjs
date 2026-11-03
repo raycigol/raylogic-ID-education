@@ -8,7 +8,7 @@ const flush=async()=>{for(let count=0;count<10;count++)await new Promise(resolve
 (async()=>{
  const nodes=new Map(),calls=[],storage=new Map();
  let user={id:'student',is_anonymous:true},delay=null,hold=false;
- const context=vm.createContext({
+ const context=vm.createContext({SessionTimer:{clear(){},sync(){}},
   document:{hidden:false,createElement:()=>new Element()},$:id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id)},
   setInterval(){},confirm:()=>true,say(){},errorText:error=>error.message,
   URL,URLSearchParams,window:{location:new URL('https://example.test/tbl/student.html'),history:{replaceState(){}}},

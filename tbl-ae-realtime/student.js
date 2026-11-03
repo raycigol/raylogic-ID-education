@@ -5,6 +5,7 @@ if(scannedCode){
  window.history.replaceState(null,'',window.location.pathname+window.location.search);
 }
 function clearStudent(){
+ SessionTimer.clear();
  if(typeof clearStudentBuzzer==='function')clearStudentBuzzer();
  mySession=null;$('work').classList.add('hide');$('join').classList.remove('hide');
  $('stageList').replaceChildren();$('teamName').textContent='';
@@ -42,6 +43,7 @@ async function loadStudent(){
    if(nonce!==studentNonce)return;
   }
   mySession=current.session_id;
+  if(participating)SessionTimer.sync(mySession);else SessionTimer.clear();
   const session=mySession,name=current.team_name,title=sessionStorage.getItem(STUDENT_TITLE_KEY)||'';
   $('join').classList.add('hide');$('work').classList.remove('hide');$('teamName').textContent=(title?title+'｜':'')+name;
   if(typeof loadStudentBuzzer==='function')loadStudentBuzzer();
@@ -114,3 +116,5 @@ $('leaveBtn').onclick=async()=>{
  finally{studentBusy=false;$('leaveBtn').disabled=false}
 };
 loadStudent();setInterval(()=>{if(!document.hidden)loadStudent()},4000);
+
+

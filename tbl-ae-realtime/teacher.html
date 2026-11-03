@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="teacher-layout.css?v=20261103-score-tab">
 <link rel="stylesheet" href="buzzer.css?v=20261101-buzzer">
+<link rel="stylesheet" href="session-timer.css?v=20261103-sync">
 </head>
 <body>
 <header><h1>TBL AE｜教師控制台</h1><p>選擇課堂，再選擇要使用的功能</p></header>
@@ -34,7 +35,16 @@
 <div class="card">
 <div class="panel-heading"><div><h2>課程控制</h2><p class="muted">開放 → 所有參與組別提交完成 → 鎖定 → 公布，再進入下一階段。</p></div><span class="refresh-label">每 4 秒更新</span></div>
 <details class="card"><summary>參與組別設定</summary><p>勾選本課堂實際參與的組別。儲存後才影響提交進度；已鎖定或公布後不可更改。</p><button id="editParticipation" class="secondary">載入／重新編輯名單</button><div id="participation"></div></details>
-<div id="stages"></div>
+<section aria-labelledby="timerHeading">
+<h3 id="timerHeading">學生同步計時</h3>
+<div id="sessionTimerBar" class="session-timer-bar" hidden></div>
+<div class="line timer-controls">
+<label>階段 <select id="timerStage"><option value="1">Stage 1</option><option value="2">Stage 2</option><option value="3">Stage 3</option><option value="4">Stage 4</option></select></label>
+<label>用途 <select id="timerPhase"><option value="discussion">小組討論</option><option value="submission">提交答案</option></select></label>
+<label>分鐘 <input id="timerMinutes" type="number" min="0.1" max="120" step="0.1" value="6"></label>
+</div><div class="line"><button id="startTimer" disabled>開始新計時</button><button id="pauseTimer" class="secondary" disabled>暫停</button><button id="resumeTimer" class="secondary" disabled>繼續</button><button id="addTimer" class="secondary" disabled>＋1 分鐘</button><button id="subtractTimer" class="secondary" disabled>－1 分鐘</button><button id="stopTimer" class="secondary" disabled>結束並隱藏</button></div>
+<p id="timerNotice" class="muted" role="status">請先開放要計時的 Stage。時間到只提醒，不會自動鎖定答案。</p>
+</section><div id="stages"></div>
 </div>
 <details class="card"><summary>單組答案撤回與更正紀錄</summary><p class="muted">僅撤回未鎖定、未公布階段的指定組別答案。請先確認錯誤代表已解除；更正紀錄保留原答案與原因；課堂重置後移入歷史封存，本次紀錄清空。</p><button id="loadAnswerReview" class="secondary">載入答案與更正紀錄</button><p id="answerReviewName" class="panel-context"></p><div id="answerReview"></div><h3>本次課堂更正紀錄（最近 100 筆）</h3><div id="answerHistory"></div><details><summary>歷史封存紀錄（最近 100 筆）</summary><div id="archivedAnswerHistory"></div></details></details>
 <details class="card reset-area"><summary>課後重置設定</summary>
@@ -78,11 +88,12 @@
 </dialog>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script><script src="common.js?v=20261102"></script>
+<script src="session-timer.js?v=20261103-sync"></script>
 <script src="teacher-layout.js?v=20261101-tabs"></script>
 <script src="teacher-confirmation.js?v=20261101-confirm"></script>
 <script src="teacher-export.js?v=20261101-csv"></script>
 <script src="join-codes.js?v=20261101-short"></script><script src="vendor/qrcode.js"></script>
-<script src="teacher-join-codes.js?v=20261102-participation"></script><script src="teacher-representatives.js?v=20261101-reps"></script><script src="teacher-answer-review.js?v=20261101-archive"></script><script src="teacher-participation.js?v=20261102"></script><script src="teacher.js?v=20261103-stage-toggle"></script>
+<script src="teacher-join-codes.js?v=20261102-participation"></script><script src="teacher-representatives.js?v=20261101-reps"></script><script src="teacher-answer-review.js?v=20261101-archive"></script><script src="teacher-participation.js?v=20261102"></script><script src="teacher.js?v=20261103-sync-timer"></script>
 <script src="teacher-buzzer.js?v=20261101-toggle"></script>
 </body>
 </html>

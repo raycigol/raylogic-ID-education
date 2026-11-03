@@ -11,7 +11,7 @@ const flush=async()=>{for(let n=0;n<10;n++)await new Promise(resolve=>setImmedia
  const stage=(number,answer,flags={})=>({session_id:'TEST',team_number:1,team_name:'第 1 組',stage_number:number,my_answer:answer,is_open:true,is_locked:false,is_revealed:false,...flags});
  let rows=[stage(1,'A'),stage(2,'C',{is_locked:true}),stage(3,'E',{is_locked:true,is_revealed:true}),stage(4,null,{is_locked:true})];
  let scores=[{team_number:2,stage_number:3,score:99},{team_number:1,stage_number:2,score:88},{team_number:1,stage_number:3,score:'7.5'}],scoreError=false;
- const context=vm.createContext({
+ const context=vm.createContext({SessionTimer:{clear(){},sync(){}},
   document:{hidden:false,createElement:()=>new Element()},$:id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id)},
   setInterval(){},say(){},confirm:()=>true,errorText:error=>error.message,URL,URLSearchParams,
   window:{location:new URL('https://example.test/student.html'),history:{replaceState(){}}},
@@ -50,3 +50,4 @@ const flush=async()=>{for(let n=0;n<10;n++)await new Promise(resolve=>setImmedia
  assert.ok(calls.every(call=>['tbl_student_status','tbl_session_roster','tbl_published_scores'].includes(call[0])),'read-only APIs only');
  console.log('PASS: own answers and published scores, zero/null/error/retry, privacy, reset and classroom scope');
 })().catch(error=>{console.error(error);process.exitCode=1});
+

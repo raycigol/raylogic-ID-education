@@ -28,7 +28,7 @@ async function loadTeacher(){
  try{
   const {data:u}=await sb.auth.getUser();
   if(nonce!==refreshNonce)return;
-  if(!u.user||u.user.is_anonymous){$('control').classList.add('hide');$('scores').classList.add('hide');return}
+  if(!u.user||u.user.is_anonymous){SessionTimer.clear();$('control').classList.add('hide');$('scores').classList.add('hide');return}
   const {data:ss,error:se}=await sb.from('tbl_sessions').select('id,title,created_at').order('created_at',{ascending:true});
   if(nonce!==refreshNonce)return;
   if(se)throw se;
@@ -50,6 +50,7 @@ async function loadTeacher(){
   $('sessionName').textContent='目前操作：'+teacherTitle;
   $('control').classList.remove('hide');$('scores').classList.remove('hide');
   const target=teacherSession;
+  SessionTimer.sync(target);
   $('resetSession').onclick=async()=>{
    if(actionBusy||nonce!==refreshNonce||teacherSession!==target)return;
    const clearMembers=$('clearMembers').checked===true;
@@ -119,6 +120,7 @@ async function loadTeacher(){
 }
 $('sessionSelect').onchange=()=>{
  if(actionBusy){$('sessionSelect').value=teacherSession;return}
+ SessionTimer.clear();
  teacherSession=$('sessionSelect').value;
  clearParticipation();
  if(typeof clearTeacherBuzzer==='function')clearTeacherBuzzer();
@@ -133,5 +135,6 @@ $('sessionSelect').onchange=()=>{
  loadTeacher();
 };
 $('login').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){say(errorText(error),'error');return}refreshNonce++;teacherSession=null;sessionStorage.removeItem(SESSION_KEY);say('教師已登入','good');loadTeacher()};
-$('logout').onclick=async()=>{if(actionBusy)return;refreshNonce++;teacherSession=null;teacherTitle='';if(typeof clearTeacherBuzzer==='function')clearTeacherBuzzer();clearJoinCodes();clearRepresentatives();clearAnswerReview();sessionStorage.removeItem(SESSION_KEY);$('control').classList.add('hide');$('scores').classList.add('hide');$('stages').replaceChildren();$('scoreRows').replaceChildren();await sb.auth.signOut();say('已登出')};
+$('logout').onclick=async()=>{if(actionBusy)return;SessionTimer.clear();refreshNonce++;teacherSession=null;teacherTitle='';if(typeof clearTeacherBuzzer==='function')clearTeacherBuzzer();clearJoinCodes();clearRepresentatives();clearAnswerReview();sessionStorage.removeItem(SESSION_KEY);$('control').classList.add('hide');$('scores').classList.add('hide');$('stages').replaceChildren();$('scoreRows').replaceChildren();await sb.auth.signOut();say('已登出')};
 loadTeacher();setInterval(()=>{if(!document.hidden)loadTeacher()},4000);
+
