@@ -48,6 +48,8 @@ const SessionTimer=(()=>{
   finally{changing=false;if(version===epoch){await sync(id);if(failure)$('timerNotice').textContent='未完成操作：'+failure}}
  }
  if(teacher){
+  $('timerPhase').onchange=()=>{$('timerMinutes').value=$('timerPhase').value==='submission'?'1':'6'};
+  $('timerPhase').onchange();
   $('startTimer').onclick=()=>{
    const minutes=Number($('timerMinutes').value);
    if(!Number.isFinite(minutes)||minutes<=0||minutes>120){$('timerNotice').textContent='請輸入大於 0、最多 120 分鐘。';return}
