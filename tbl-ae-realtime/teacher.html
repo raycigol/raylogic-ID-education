@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TBL AE 教師控制台</title>
 <link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="teacher-layout.css?v=20261103-score-tab">
+<link rel="stylesheet" href="teacher-layout.css?v=20261103-print-qr">
 <link rel="stylesheet" href="buzzer.css?v=20261101-buzzer">
 <link rel="stylesheet" href="session-timer.css?v=20261103-sync">
 </head>
@@ -58,7 +58,7 @@
 <section class="card hide" id="scores"><div class="panel-heading"><div><h2>已公布分數</h2><p class="muted">只匯出目前所選課堂的已公布分數，未公布欄位留白；CSV 可用 Excel 開啟。</p></div><button id="exportScores" class="secondary">匯出成績 CSV</button></div><div class="scroll"><table><thead><tr><th>組別</th><th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>累計</th><th>排名</th></tr></thead><tbody id="scoreRows"></tbody></table></div></section>
 </section>
 <section id="panel-codes" class="teacher-panel card" role="tabpanel" aria-labelledby="tab-codes" tabindex="0" data-teacher-panel="codes" hidden>
-<div class="panel-heading"><div><h2>組別加入碼與 QR Code</h2><p class="muted">只將對應組別的代碼提供給該組代表。更新短碼不會撤銷原 UUID 代碼。</p></div><button id="loadJoinCodes">產生／查看本課堂加入碼</button></div>
+<div class="panel-heading"><div><h2>組別加入碼與 QR Code</h2><p class="muted">只將對應組別的代碼提供給該組代表。更新短碼不會撤銷原 UUID 代碼。</p></div><div class="panel-actions"><button id="loadJoinCodes">產生／查看本課堂加入碼</button><button id="printJoinCodes" class="secondary" disabled>列印／另存 PDF</button></div></div><p class="muted">先載入目前課堂的加入碼，再開啟 A4 裁剪卡預覽。每頁最多 6 張，只列印參與組別。</p>
 <p id="joinCodesName" class="panel-context"></p><div id="joinCodes" class="join-code-grid"></div>
 </section>
 <section id="panel-members" class="teacher-panel card" role="tabpanel" aria-labelledby="tab-members" tabindex="0" data-teacher-panel="members" hidden>
@@ -94,7 +94,7 @@
 <script src="teacher-confirmation.js?v=20261101-confirm"></script>
 <script src="teacher-export.js?v=20261101-csv"></script>
 <script src="join-codes.js?v=20261101-short"></script><script src="vendor/qrcode.js"></script>
-<script src="teacher-join-codes.js?v=20261102-participation"></script><script src="teacher-representatives.js?v=20261101-reps"></script><script src="teacher-answer-review.js?v=20261101-archive"></script><script src="teacher-participation.js?v=20261102"></script><script src="teacher.js?v=20261103-sync-timer"></script>
+<script src="join-code-print.js?v=20261103-print-qr"></script><script src="teacher-join-codes.js?v=20261103-print-qr"></script><script src="teacher-representatives.js?v=20261101-reps"></script><script src="teacher-answer-review.js?v=20261101-archive"></script><script src="teacher-participation.js?v=20261102"></script><script src="teacher.js?v=20261103-sync-timer"></script>
 <script src="teacher-buzzer.js?v=20261101-toggle"></script>
 </body>
 </html>

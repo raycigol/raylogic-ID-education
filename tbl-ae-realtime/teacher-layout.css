@@ -31,6 +31,7 @@ summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:40px}
 .panel-heading h2{margin-bottom:8px}
 .panel-heading p{margin:0;line-height:1.65;max-width:650px}
 .panel-heading>button{flex-shrink:0}
+.panel-actions{display:flex;flex-wrap:wrap;gap:10px;flex-shrink:0}
 .refresh-label{font-size:.85rem;white-space:nowrap;background:#e8f4f0;color:#176b56;padding:7px 10px;border-radius:20px}
 .panel-context{font-weight:700;overflow-wrap:anywhere}
 .panel-context:empty{display:none}
@@ -65,6 +66,7 @@ summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:40px}
  .teacher-tabs button{padding:12px 5px;font-size:.9rem}
  .panel-heading{flex-direction:column;gap:12px}
  .panel-heading>button{width:100%}
+ .panel-actions,.panel-actions button{width:100%}
  #stages{grid-template-columns:1fr}
  #representatives .stage>button{flex:1 1 100%}
  #answerReview .stage>button{flex:1 1 100%}
@@ -73,3 +75,4 @@ summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:40px}
  .workspace-header{position:static}
  .account-card,nav,.reset-area,#teacherConfirmation{display:none}
 }
+

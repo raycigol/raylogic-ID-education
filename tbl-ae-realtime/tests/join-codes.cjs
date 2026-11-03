@@ -6,12 +6,12 @@ class Element{
  append(...children){this.children.push(...children)}
  replaceChildren(){this.children=[]}
 }
-const nodes=new Map(),calls=[];
+const nodes=new Map(),calls=[],previews=[];
 const context=vm.createContext({
  URL,URLSearchParams,window:{location:new URL('https://example.test/tbl-ae-realtime/teacher.html#join=k7m4p9')},
  qrcode:makeQr,document:{createElement:()=>new Element()},
  $:id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id)},
- confirm:()=>true,say(){},errorText:error=>error.message,
+ confirm:()=>true,say(){},errorText:error=>error.message,openJoinCodePrint:snapshot=>previews.push(snapshot),
  rpc:async(name,args)=>{calls.push([name,args]);if(name==='tbl_session_roster')return {teams:[{team_id:'TEST-team',active:true}]};return [{team_id:'TEST-team',team_name:'TEST 1',short_code:'K7M4P9'}]}
 });
 (async()=>{
@@ -29,11 +29,13 @@ const context=vm.createContext({
  const card=nodes.get('joinCodes').children[0];
  assert.equal(card.children[1].textContent,'K7M4P9');
  assert.ok(card.children[3].src.startsWith('data:image/gif;base64,'));
+ const beforePrint=calls.length;nodes.get('printJoinCodes').onclick();assert.equal(calls.length,beforePrint,'print must not call database');assert.equal(previews.length,1);assert.equal(previews[0].session,'TEST');assert.equal(previews[0].cards[0].shortCode,'K7M4P9');assert.match(previews[0].cards[0].qrSource,/^data:image\/svg\+xml/);
  const rotate=card.children[4];await rotate.onclick();await new Promise(resolve=>setImmediate(resolve));
  assert.ok(calls.some(call=>call[1].p_rotate_team==='TEST-team'));
  vm.runInContext("teacherSession='FORMAL';clearJoinCodes()",context);
  const before=calls.length;await rotate.onclick();assert.equal(calls.length,before);
  assert.equal(nodes.get('joinCodes').children.length,0);
+ assert.equal(nodes.get('printJoinCodes').disabled,true);nodes.get('printJoinCodes').onclick();assert.equal(previews.length,1,'stale session cannot open print preview');
  console.log('PASS: short-code validation, UUID compatibility, QR link and image, rotation target, stale classroom guard');
 })().catch(error=>{console.error(error);process.exitCode=1});
 

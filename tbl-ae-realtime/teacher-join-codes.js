@@ -1,9 +1,12 @@
+let joinCodePrintSnapshot=null;
 function clearJoinCodes(){
+ joinCodePrintSnapshot=null;$('printJoinCodes').disabled=true;
  $('joinCodes').replaceChildren();$('joinCodesName').textContent='';
 }
 async function loadJoinCodes(rotateTeam=null){
  if(actionBusy||!teacherSession)return;
  const target=teacherSession,name=teacherTitle;
+ clearJoinCodes();
  actionBusy=true;refreshNonce++;$('sessionSelect').disabled=true;$('loadJoinCodes').disabled=true;
  try{
   const roster=await rpc('tbl_session_roster',{p_session_id:target});
@@ -11,6 +14,7 @@ async function loadJoinCodes(rotateTeam=null){
   const records=await rpc('tbl_teacher_join_codes',{p_session_id:target,p_rotate_team:rotateTeam});
   if(teacherSession!==target)return;
   clearJoinCodes();$('joinCodesName').textContent=name+'｜組別加入碼（請只將對應組別代碼提供給該組）';
+  const printCards=[];
   for(const record of records||[]){
    if(!active.has(record.team_id))continue;
    const card=document.createElement('div');card.className='card';
@@ -22,6 +26,7 @@ async function loadJoinCodes(rotateTeam=null){
     const qr=qrcode(0,'M');qr.addData(link.href);qr.make();
     const picture=document.createElement('img');picture.src=qr.createDataURL(4,16);picture.alt=name+' '+record.team_name+' 加入 QR Code';
     picture.style.width='100%';picture.style.maxWidth='220px';picture.style.height='auto';card.append(picture);
+    printCards.push({teamName:record.team_name,shortCode:record.short_code,qrSource:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(qr.createSvgTag({cellSize:4,margin:16,scalable:true}))});
    }
    const rotate=document.createElement('button');rotate.className='secondary';rotate.textContent='更新此組短碼';
    rotate.onclick=()=>{
@@ -31,9 +36,14 @@ async function loadJoinCodes(rotateTeam=null){
    };
    card.append(rotate);$('joinCodes').append(card);
   }
+  if(printCards.length&&printCards.length===$('joinCodes').children.length){joinCodePrintSnapshot={session:target,title:name,cards:printCards};$('printJoinCodes').disabled=false}
   if(typeof qrcode!=='function')say('短碼已載入，QR Code 程式未載入，請重新整理。','error');
  }catch(error){if(teacherSession===target){clearJoinCodes();say(errorText(error),'error')}}
  finally{actionBusy=false;$('sessionSelect').disabled=false;$('loadJoinCodes').disabled=false;await loadTeacher()}
 }
 $('loadJoinCodes').onclick=()=>loadJoinCodes();
+$('printJoinCodes').onclick=()=>{
+ if(actionBusy||!joinCodePrintSnapshot||joinCodePrintSnapshot.session!==teacherSession)return;
+ try{openJoinCodePrint(joinCodePrintSnapshot)}catch(error){say(errorText(error),'error')}
+};
 
