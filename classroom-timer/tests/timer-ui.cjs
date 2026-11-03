@@ -17,7 +17,7 @@ p.$('startPause').click();p.advance(3000);assert.equal(p.$('digits').textContent
 p.$('clockMode').click();assert.equal(p.$('timerControls').hidden,true);p.advance(5000);p.$('countdownMode').click();assert.equal(p.$('digits').textContent,'14:52','clock mode does not pause countdown');
 p.$('startPause').click();p.advance(10000);assert.equal(p.$('digits').textContent,'14:52','pause freezes remaining time');
 p.confirm(false);p.$('trat').click();assert.equal(p.$('digits').textContent,'14:52','cancelled stage switch preserves countdown');
-p.confirm(true);p.$('trat').click();assert.equal(p.$('digits').textContent,'25:00');
+p.confirm(true);p.$('trat').click();assert.equal(p.$('digits').textContent,'20:00');
 p.$('minutes').value='0';p.$('seconds').value='5';p.$('durationForm').onsubmit({preventDefault(){}});
 assert.equal(p.$('digits').textContent,'00:05');p.$('startPause').click();
 p=page(21000);assert.equal(p.$('digits').textContent,'00:03','reload resumes saved deadline');
@@ -54,6 +54,6 @@ assert.equal(p.$('aeStage2').attributes['aria-pressed'],'true');assert.equal(p.$
 p.$('clockMode').click();p.advance(5000);p.$('countdownMode').click();assert.equal(p.$('digits').textContent,'00:40');
 p.confirm(false);p.$('irat').click();assert.equal(p.$('aeSettings').hidden,false);
 p.confirm(true);p.$('irat').click();assert.equal(p.$('digits').textContent,'15:00');assert.equal(p.$('aeSettings').hidden,true);assert.equal(p.$('nextSegment').hidden,true);
-p.$('trat').click();assert.equal(p.$('digits').textContent,'25:00');
+p.$('trat').click();assert.equal(p.$('digits').textContent,'20:00');
 console.log('PASS: start/pause; clock mode continues countdown; cancelled changes; custom duration; reload; finish; adjustments; projection; validation; keyboard editing guard; isolated storage');
 console.log('PASS: all 12 AE segments total 55 minutes; manual advance; cancellation; final boundary; stage/part selection and reload; clock continuity; RAT preset isolation');

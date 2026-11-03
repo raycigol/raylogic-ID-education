@@ -59,7 +59,7 @@
  }
  $('startPause').onclick=startPause;
  $('reset').onclick=()=>{if(!approveReset())return;timer.reset();feedback('已重設，尚未開始計時。');persist();render()};
- $('irat').onclick=()=>setDuration(900,'irat');$('trat').onclick=()=>setDuration(1500,'trat');
+ $('irat').onclick=()=>setDuration(900,'irat');$('trat').onclick=()=>setDuration(1200,'trat');
  $('ae').onclick=()=>setDuration(aePlan[0][0]*60,'ae',0,0);
  for(let s=0;s<4;s++)$('aeStage'+s).onclick=()=>setDuration(aePlan[s][0]*60,'ae',s,0);
  for(let p=0;p<3;p++)$('aePart'+p).onclick=()=>setDuration(aePlan[aeStage][p]*60,'ae',aeStage,p);
