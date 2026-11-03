@@ -80,10 +80,8 @@ async function loadTeacher(){
   for(const s of st||[]){
    const submitted=new Set((sub||[]).filter(x=>x.stage_number===s.stage_number&&active.has(x.team_id)).map(x=>x.team_id));
    const count=submitted.size;
-   const missing=roster.teams.filter(t=>t.active&&!submitted.has(t.team_id)).map(t=>t.team_name);
    const row=document.createElement('div');row.className='stage';
    const label=document.createElement('div');label.textContent='Stage '+s.stage_number+'｜'+count+'/'+total+' 已提交｜'+(s.is_revealed?'已公布':s.is_locked?'已鎖定':s.is_open?'開放中':'未開放');row.append(label);
-   if(missing.length){const detail=document.createElement('p');detail.textContent='尚未提交：'+missing.join('、');row.append(detail)}
    const buttons=document.createElement('div');
    const operations=[['開放','tbl_teacher_open_stage',!s.is_open&&!s.is_locked&&!s.is_revealed],['鎖定','tbl_teacher_lock_stage',s.is_open&&!s.is_locked&&total>0&&count===total],['公布','tbl_teacher_publish_stage',s.is_locked&&!s.is_revealed]];
    for(const [label,fn,allow] of operations){
