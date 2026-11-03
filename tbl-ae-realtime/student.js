@@ -50,7 +50,7 @@ async function loadStudent(){
    const box=document.createElement('div');box.className='stage';
    const title=document.createElement('strong');title.textContent='Stage '+stage.stage_number+'｜'+(stage.is_revealed?'已公布':stage.is_locked?'已鎖定':stage.is_open?'可作答':'尚未開放');box.append(title);
    const submitted=stage.my_answer?'本組已提交：'+stage.my_answer:'本組尚未提交';
-   const detail=document.createElement('div');detail.textContent=submitted+(stage.my_answer?'｜鎖定前可修改':'');
+   const detail=document.createElement('div');detail.textContent=submitted+(stage.my_answer?(stage.is_open?'｜鎖定前可修改':'｜目前未開放，答案已保留'):'');
    if(stage.is_locked)detail.textContent=submitted+'｜本階段已鎖定，不能修改';
    if(stage.is_revealed){
     const result=publishedScores.find(row=>row.team_number===stage.team_number&&row.stage_number===stage.stage_number);
