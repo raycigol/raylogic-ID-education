@@ -18,7 +18,7 @@ const SessionTimer=(()=>{
    for(const id of ['addTimer','subtractTimer','stopTimer'])$(id).disabled=changing||stale;
   }
  }
- function clear(){epoch++;session=null;snapshot=null;inflight=false;bar.hidden=true;if(teacher)for(const id of ['startTimer','pauseTimer','resumeTimer','addTimer','subtractTimer','stopTimer'])$(id).disabled=true}
+ function clear(){epoch++;session=null;snapshot=null;inflight=false;bar.hidden=true;if(teacher){$('openTimerProjection').hidden=true;for(const id of ['startTimer','pauseTimer','resumeTimer','addTimer','subtractTimer','stopTimer'])$(id).disabled=true}}
  async function sync(id){
   if(session!==id){clear();session=id}
   if(!id||inflight||changing)return;
@@ -27,6 +27,7 @@ const SessionTimer=(()=>{
    const data=await rpc('tbl_timer_status',{p_session_id:id});
    if(version!==epoch||session!==id)return;
    snapshot=data;anchor=(start+performance.now())/2;lastSync=performance.now();
+   if(teacher){$('openTimerProjection').href='../classroom-timer/?mode=sync&session='+encodeURIComponent(id);$('openTimerProjection').hidden=false}
    if(teacher){$('timerNotice').textContent='時間到只提醒，不會自動鎖定答案。';$('startTimer').disabled=false;for(const key of ['pauseTimer','resumeTimer','addTimer','subtractTimer','stopTimer'])$(key).disabled=!data.timer||data.timer.state==='idle'}
    draw();
   }catch(error){

@@ -1,5 +1,6 @@
 (()=>{
  'use strict';
+ if(window.ClassroomProjection?.requested){window.ClassroomProjection.start();return}
  const $=id=>document.getElementById(id),{Timer,format,validSeconds}=ClassroomTimer;
  const KEY='raylogic-classroom-timer-v1',labels={irat:['iRAT','個人作答','個人思考，獨立作答。'],trat:['tRAT','小組作答','小組討論，一起作答。']};
  const aePlan=[[6,1,5],[7,1,5],[8,1,6],[7,1,7]],aeParts=['小組討論','提交答案','組間討論與教師回饋'];
@@ -87,3 +88,4 @@
  document.addEventListener('visibilitychange',render);window.addEventListener('pageshow',render);
  updateSettings();render();setInterval(render,200);
 })();
+

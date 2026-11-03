@@ -37,6 +37,7 @@
 <details class="card"><summary>參與組別設定</summary><p>勾選本課堂實際參與的組別。儲存後才影響提交進度；已鎖定或公布後不可更改。</p><button id="editParticipation" class="secondary">載入／重新編輯名單</button><div id="participation"></div></details>
 <section aria-labelledby="timerHeading">
 <h3 id="timerHeading">學生同步計時</h3>
+<a id="openTimerProjection" href="../classroom-timer/" target="_blank" rel="noopener" hidden>開啟同步投影 ↗</a>
 <div id="sessionTimerBar" class="session-timer-bar" hidden></div>
 <div class="line timer-controls">
 <label>階段 <select id="timerStage"><option value="1">Stage 1</option><option value="2">Stage 2</option><option value="3">Stage 3</option><option value="4">Stage 4</option></select></label>
@@ -88,7 +89,7 @@
 </dialog>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script><script src="common.js?v=20261102"></script>
-<script src="session-timer.js?v=20261103-sync"></script>
+<script src="session-timer.js?v=20261103-projection"></script>
 <script src="teacher-layout.js?v=20261101-tabs"></script>
 <script src="teacher-confirmation.js?v=20261101-confirm"></script>
 <script src="teacher-export.js?v=20261101-csv"></script>
