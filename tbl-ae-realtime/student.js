@@ -1,4 +1,4 @@
-let mySession=null,refreshing=false,studentBusy=false,studentNonce=0;
+let mySession=null,myTeamNumber=null,refreshing=false,studentBusy=false,studentNonce=0;
 let scannedCode=prefilledJoinCode();
 if(scannedCode){
  $('joinCode').value=scannedCode;
@@ -7,7 +7,7 @@ if(scannedCode){
 function clearStudent(){
  SessionTimer.clear();
  if(typeof clearStudentBuzzer==='function')clearStudentBuzzer();
- mySession=null;$('work').classList.add('hide');$('join').classList.remove('hide');
+ mySession=null;myTeamNumber=null;$('work').classList.add('hide');$('join').classList.remove('hide');
  $('stageList').replaceChildren();$('teamName').textContent='';
 }
 async function ensureAuth(){
@@ -42,7 +42,7 @@ async function loadStudent(){
    catch(error){scoreLoadFailed=true}
    if(nonce!==studentNonce)return;
   }
-  mySession=current.session_id;
+  mySession=current.session_id;myTeamNumber=current.team_number;
   if(participating)SessionTimer.sync(mySession);else SessionTimer.clear();
   const session=mySession,name=current.team_name,title=sessionStorage.getItem(STUDENT_TITLE_KEY)||'';
   $('join').classList.add('hide');$('work').classList.remove('hide');$('teamName').textContent=(title?title+'｜':'')+name;
@@ -102,17 +102,29 @@ $('joinBtn').onclick=async()=>{
 };
 $('leaveBtn').onclick=async()=>{
  if(studentBusy)return;
- const {data,error}=await sb.auth.getUser();
- if(error&&error.name!=='AuthSessionMissingError'){say(errorText(error),'error');return}
- if(data.user&&!data.user.is_anonymous){say('目前是教師登入，請用另一個瀏覽器或私密模式開啟學生頁。','error');return}
- if(!confirm('離開目前組別並重新輸入代碼？\n只登出本機；不會刪除或撤回任何組別已提交的答案。\n若曾替錯誤組別提交答案，請通知教師。'))return;
- studentBusy=true;$('leaveBtn').disabled=true;studentNonce++;clearStudent();
+ studentBusy=true;$('leaveBtn').disabled=true;studentNonce++;
+ let session=mySession||sessionStorage.getItem(STUDENT_SESSION_KEY),team=myTeamNumber,released=false;
  try{
+  const {data,error}=await sb.auth.getUser();
+  if(error&&error.name!=='AuthSessionMissingError')throw error;
+  if(data.user&&!data.user.is_anonymous){say('目前是教師登入，請用另一個瀏覽器或私密模式開啟學生頁。','error');return}
+  if(data.user&&(!session||!team)){
+   const rows=await rpc('tbl_student_status',{});
+   if(!session&&new Set((rows||[]).map(row=>row.session_id)).size>1)throw new Error('有多個課堂身份，請先等待目前課堂載入完成，再離開組別。');
+   const current=(rows||[]).find(row=>!session||row.session_id===session);
+   if(current){session=current.session_id;team=current.team_number}
+  }
+  if(!confirm('離開目前組別並重新輸入代碼？\n'+(team?'第 '+team+' 組：解除自己在本課堂的代表綁定。\n':'')+'原組答案與分數保留；若曾替錯誤組別提交答案，請通知教師。'))return;
+  if(data.user&&session&&team){
+   await rpc('tbl_student_leave_session',{p_session_id:session,p_expected_team_number:team});released=true;
+  }
+  // Keep the credential until the server confirms the representative release.
+  clearStudent();
   const {error:signOutError}=await sb.auth.signOut({scope:'local'});
   if(signOutError)throw signOutError;
-  $('joinCode').value='';say('已離開，請輸入正確組別代碼。原組答案保留。','good');
+  $('joinCode').value='';say('已離開並解除自己的代表綁定，請輸入正確組別代碼。原組答案與分數保留。','good');
   sessionStorage.removeItem(STUDENT_SESSION_KEY);sessionStorage.removeItem(STUDENT_TITLE_KEY);scannedCode='';
- }catch(error){say(errorText(error),'error')}
+ }catch(error){say((released?'代表綁定已解除，但本機登出未完成：':'離開未完成，尚未登出，請重試或聯絡教師：')+errorText(error),'error')}
  finally{studentBusy=false;$('leaveBtn').disabled=false}
 };
 loadStudent();setInterval(()=>{if(!document.hidden)loadStudent()},4000);

@@ -25,12 +25,17 @@ const flush=async()=>{for(let count=0;count<10;count++)await new Promise(resolve
  await nodes.get('leaveBtn').onclick();delay();await flush();
  assert.equal(nodes.get('stageList').children.length,0);
  assert.equal(calls.find(call=>call[0]==='logout')[1].scope,'local');
+ const release=calls.find(call=>call[0]==='tbl_student_leave_session');assert.equal(release[1].p_session_id,'TEST');assert.equal(release[1].p_expected_team_number,1);
+ assert(calls.indexOf(release)<calls.findIndex(call=>call[0]==='logout'));
  const before=calls.length;await staleSend.onclick();assert.equal(calls.length,before);
  nodes.get('joinCode').value='11111111-1111-4111-8111-111111111111';await nodes.get('joinBtn').onclick();await flush();
  assert.ok(calls.some(call=>call[0]==='tbl_join_with_code'));
  assert.equal(storage.get('tbl-ae-realtime-student-session'),'TEST');
  await nodes.get('leaveBtn').onclick();nodes.get('joinCode').value=' k7m4p9 ';await nodes.get('joinBtn').onclick();await flush();
  assert.ok(calls.some(call=>call[0]==='tbl_join_with_code'&&call[1].p_code==='K7M4P9'));
+ const transport=context.rpc;context.rpc=async(name,args)=>{if(name==='tbl_student_leave_session')throw Error('offline');return transport(name,args)};
+ const countBefore=calls.filter(call=>call[0]==='logout').length;await nodes.get('leaveBtn').onclick();assert.equal(calls.filter(call=>call[0]==='logout').length,countBefore);assert.equal(user.is_anonymous,true);
+ context.rpc=transport;context.confirm=()=>false;await nodes.get('leaveBtn').onclick();assert.equal(calls.filter(call=>call[0]==='logout').length,countBefore);context.confirm=()=>true;
  user={id:'teacher',is_anonymous:false};const logouts=calls.filter(call=>call[0]==='logout').length;
  await nodes.get('leaveBtn').onclick();assert.equal(calls.filter(call=>call[0]==='logout').length,logouts);
  await assert.rejects(vm.runInContext('ensureAuth()',context),/教師登入/);

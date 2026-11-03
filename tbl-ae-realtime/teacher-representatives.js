@@ -35,3 +35,7 @@ async function loadRepresentatives(){
  finally{if(nonce===representativesNonce)$('loadRepresentatives').disabled=false}
 }
 $('loadRepresentatives').onclick=()=>loadRepresentatives();
+setInterval(()=>{
+ if(!document.hidden&&!$('panel-members').hidden&&!$('loadRepresentatives').disabled&&!actionBusy)loadRepresentatives();
+},4000);
+

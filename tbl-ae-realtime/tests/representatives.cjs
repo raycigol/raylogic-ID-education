@@ -5,9 +5,9 @@ class Element{
  append(...children){this.children.push(...children)}
  replaceChildren(){this.children=[]}
 }
-const nodes=new Map(),calls=[],messages=[];
+const nodes=new Map(),calls=[],messages=[],intervals=[];
 let members=['old-user'],releaseList=null,hold=false,confirmed=true;
-const context=vm.createContext({
+const context=vm.createContext({setInterval:f=>intervals.push(f),
  document:{createElement:()=>new Element()},$:id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id)},
  confirm:()=>confirmed,say:message=>messages.push(message),errorText:error=>error.message,clearJoinCodes(){},
  rpc:async(name,args)=>{
@@ -37,5 +37,8 @@ const flush=async()=>{for(let count=0;count<10;count++)await new Promise(resolve
  vm.runInContext("teacherSession='FORMAL';clearRepresentatives()",context);releaseList();await pending;
  assert.equal(nodes.get('representatives').children.length,0);assert.equal(nodes.get('loadRepresentatives').disabled,false);
  assert.equal(nodes.get('clearMembers').checked,false);
+ context.$('panel-members').hidden=false;const start=calls.length;intervals[0]();await flush();assert(calls.length>start);assert.equal(calls.at(-1)[1].p_session_id,'FORMAL');
+ nodes.get('panel-members').hidden=true;const hidden=calls.length;intervals[0]();await flush();assert.equal(calls.length,hidden);
  console.log('PASS: representative status/progress, cancel, scoped release/rotation with expected member, stale action and cross-session refresh guards');
 })().catch(error=>{console.error(error);process.exitCode=1});
+
