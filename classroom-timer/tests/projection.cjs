@@ -36,5 +36,6 @@ function page(query='?mode=sync&session='+sid){
  assert(p.calls.every(x=>!String(x[0]).includes('teacher_timer')));assert.equal(p.storage.length,0,'projection never overwrites independent timer storage');
  const missing=page('?mode=sync');await flush();assert.equal(missing.calls.length,0);assert.match(missing.$('syncNotice').textContent,/教師控制台/);
  const invalid=page('?mode=sync&session=bad');await flush();assert.equal(invalid.calls.length,0);
+ let starts=0;vm.runInNewContext(fs.readFileSync(__dirname+'/../timer.js','utf8'),{window:{ClassroomProjection:{requested:true,start:()=>starts++}}});assert.equal(starts,1,'sync mode does not start an independent timer');
  console.log('PASS: read-only projection; session ownership; phase/deadline/pause/zero/idle; clock mode; offline/stale/recovery; anonymous denied; mismatched sessions; late auth response; invalid URL; independent storage preserved');
 })().catch(e=>{console.error(e);process.exitCode=1});

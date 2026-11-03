@@ -33,7 +33,7 @@ window.ClassroomProjection=(()=>{
    $('countdownMode').setAttribute('aria-pressed',String(!clockMode));$('clockMode').setAttribute('aria-pressed',String(clockMode));
   }
   const cfg=window.TBL_CONFIG;
-  const sb=cfg&&window.supabase?.createClient(cfg.url,cfg.key);
+  let sb=null;
   async function sync(){
    if(inflight||!sb)return;
    inflight=true;const version=generation,started=performance.now();
@@ -64,13 +64,23 @@ window.ClassroomProjection=(()=>{
   document.addEventListener('keydown',event=>{if(event.repeat||event.ctrlKey||event.metaKey||event.altKey||event.target?.closest('input,textarea,select,button,a'))return;if(event.key.toLowerCase()==='f')$('fullscreen').click();else if(event.code==='Space')event.preventDefault()});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){lastSync=-Infinity;draw();sync()}});
   window.addEventListener('pageshow',()=>{lastSync=-Infinity;draw();sync()});
-  sb?.auth.onAuthStateChange(()=>{generation++;snapshot=null;inflight=false;lastSync=-Infinity;draw()});
   draw();
   if(!sid||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sid)){
    text('syncNotice','請從教師控制台選擇課堂，再按「開啟同步投影」。');text('sessionContext','尚未選擇課堂');return;
   }
-  if(!sb){text('syncNotice','同步元件未能載入，請確認網路後重新整理。');return}
-  sync();setInterval(()=>{if(!document.hidden)sync()},4000);setInterval(draw,250);
+  if(!cfg){text('syncNotice','同步設定未能載入，請確認網路後重新整理。');return}
+  function connect(){
+   if(!window.supabase){text('syncNotice','同步元件未能載入，請確認網路後重新整理。');return}
+   sb=window.supabase.createClient(cfg.url,cfg.key);
+   sb.auth.onAuthStateChange(()=>{generation++;snapshot=null;inflight=false;lastSync=-Infinity;draw()});
+   sync();
+  }
+  // The independent timer must remain usable even when the external SDK is unavailable.
+  if(window.supabase)connect();else{
+   const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';script.onload=connect;
+   script.onerror=()=>text('syncNotice','同步元件未能載入，請確認網路後重新整理。');document.head.append(script);
+  }
+  setInterval(()=>{if(!document.hidden)sync()},4000);setInterval(draw,250);
  }
  return {requested,start};
 })();
