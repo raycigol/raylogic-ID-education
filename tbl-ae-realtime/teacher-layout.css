@@ -35,7 +35,12 @@ summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:40px}
 .panel-context{font-weight:700;overflow-wrap:anywhere}
 .panel-context:empty{display:none}
 #stages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-#stages .stage{margin:0;padding:18px;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:16px}
+#stages .stage{margin:0;padding:18px;min-width:0;display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:16px}
+#stages .stage>p{overflow-wrap:anywhere}
+#stages .scroll{min-width:0;max-width:100%}
+#stages table{min-width:0;table-layout:fixed}
+#stages caption{font-weight:700;text-align:left;padding:8px 0}
+#stages th,#stages td{overflow-wrap:anywhere;padding:10px 6px}
 #stages .stage>div:first-child{font-weight:650;line-height:1.7}
 #stages .stage>div:last-child{display:flex;flex-wrap:wrap;gap:10px}
 #stages button{flex:1;min-width:70px}
