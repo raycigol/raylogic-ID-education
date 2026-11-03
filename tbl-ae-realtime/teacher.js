@@ -2,6 +2,24 @@ let teacherSession=null,teacherTitle='',busy=false,actionBusy=false,refreshNonce
 const SESSION_KEY='tbl-ae-realtime-teacher-session';
 const TEST_SESSION_ID='0f82561e-c980-44cb-8a5d-091dbc9c71e6';
 const isTestSession=(session,title)=>session===TEST_SESSION_ID&&title==='2026 ID Block TBL — TEST';
+function stageAnswerTable(stage,teams,submissions,scores){
+ const wrap=document.createElement('div');wrap.className='scroll';
+ const table=document.createElement('table');
+ const caption=document.createElement('caption');caption.textContent='Stage '+stage.stage_number+'｜各組答案與得分';table.append(caption);
+ const head=document.createElement('thead'),header=document.createElement('tr');
+ for(const text of ['組別','已提交選項','得分']){const th=document.createElement('th');th.textContent=text;header.append(th)}
+ head.append(header);table.append(head);
+ const body=document.createElement('tbody');
+ for(const team of [...teams].sort((a,b)=>a.team_number-b.team_number)){
+  const answer=submissions.find(x=>x.team_id===team.team_id&&x.stage_number===stage.stage_number)?.answer;
+  const score=scores.find(x=>x.team_number===team.team_number&&x.stage_number===stage.stage_number)?.score;
+  const points=!stage.is_revealed?'待公布':score!==null&&score!==undefined&&Number.isFinite(Number(score))?Number(score)+' 分':'—';
+  const row=document.createElement('tr');
+  for(const text of [team.team_name+(team.active?'':'（未參與）'),answer||'尚未提交',points]){const cell=document.createElement('td');cell.textContent=text;row.append(cell)}
+  body.append(row);
+ }
+ table.append(body);wrap.append(table);return wrap;
+}
 async function loadTeacher(){
  if(busy||actionBusy){pendingRefresh=true;return}
  if(document.activeElement===$('sessionSelect'))return;
@@ -48,13 +66,15 @@ async function loadTeacher(){
   };
   const [{data:st,error:ee},{data:sub,error:es}]=await Promise.all([
    sb.from('tbl_stages').select('stage_number,is_open,is_locked,is_revealed').eq('session_id',target).order('stage_number'),
-   sb.from('tbl_submissions').select('stage_number,team_id').eq('session_id',target)
+   sb.from('tbl_submissions').select('stage_number,team_id,answer').eq('session_id',target)
   ]);
   if(nonce!==refreshNonce||teacherSession!==target)return;
   if(ee)throw ee;if(es)throw es;
   const roster=await rpc('tbl_session_roster',{p_session_id:target});
   if(nonce!==refreshNonce||teacherSession!==target)return;
   renderParticipation(roster,target,name);
+  const result=await rpc('tbl_published_scores',{p_session_id:target});
+  if(nonce!==refreshNonce||teacherSession!==target)return;
   const active=new Set(roster.teams.filter(t=>t.active).map(t=>t.team_id)),total=active.size;
   const area=$('stages');area.replaceChildren();
   for(const s of st||[]){
@@ -93,9 +113,9 @@ async function loadTeacher(){
     };
     buttons.append(simulate);
    }
+   row.append(stageAnswerTable(s,roster.teams,sub||[],result||[]));
    row.append(buttons);area.append(row)
   }
-  const result=await rpc('tbl_published_scores',{p_session_id:target});
   if(nonce===refreshNonce&&teacherSession===target)showScores(result);
  }catch(e){if(nonce===refreshNonce){clearParticipation();$('stages').replaceChildren();$('scoreRows').replaceChildren();say(errorText(e),'error')}}finally{busy=false;if(pendingRefresh||nonce!==refreshNonce){pendingRefresh=false;loadTeacher()}}
 }
@@ -117,4 +137,3 @@ $('sessionSelect').onchange=()=>{
 $('login').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){say(errorText(error),'error');return}refreshNonce++;teacherSession=null;sessionStorage.removeItem(SESSION_KEY);say('教師已登入','good');loadTeacher()};
 $('logout').onclick=async()=>{if(actionBusy)return;refreshNonce++;teacherSession=null;teacherTitle='';if(typeof clearTeacherBuzzer==='function')clearTeacherBuzzer();clearJoinCodes();clearRepresentatives();clearAnswerReview();sessionStorage.removeItem(SESSION_KEY);$('control').classList.add('hide');$('scores').classList.add('hide');$('stages').replaceChildren();$('scoreRows').replaceChildren();await sb.auth.signOut();say('已登出')};
 loadTeacher();setInterval(()=>{if(!document.hidden)loadTeacher()},4000);
-
