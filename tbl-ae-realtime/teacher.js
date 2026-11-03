@@ -83,13 +83,13 @@ async function loadTeacher(){
    const row=document.createElement('div');row.className='stage';
    const label=document.createElement('div');label.textContent='Stage '+s.stage_number+'｜'+count+'/'+total+' 已提交｜'+(s.is_revealed?'已公布':s.is_locked?'已鎖定':s.is_open?'開放中':'未開放');row.append(label);
    const buttons=document.createElement('div');
-   const operations=[['開放','tbl_teacher_open_stage',!s.is_open&&!s.is_locked&&!s.is_revealed],['鎖定','tbl_teacher_lock_stage',s.is_open&&!s.is_locked&&total>0&&count===total],['公布','tbl_teacher_publish_stage',s.is_locked&&!s.is_revealed]];
+   const operations=[[s.is_open?'關閉':'開放',s.is_open?'tbl_teacher_close_stage':'tbl_teacher_open_stage',!s.is_locked&&!s.is_revealed],['鎖定','tbl_teacher_lock_stage',s.is_open&&!s.is_locked&&total>0&&count===total],['公布','tbl_teacher_publish_stage',s.is_locked&&!s.is_revealed]];
    for(const [label,fn,allow] of operations){
     const b=document.createElement('button');b.className='secondary';b.textContent=label;b.disabled=!allow;
     b.onclick=async()=>{
      if(actionBusy||nonce!==refreshNonce||teacherSession!==target)return;
      const session=target;
-     if(!confirm('操作課堂：'+name+'\nStage '+s.stage_number+'：'+label+'？\n請確認是正確場次。'))return;
+     if(!confirm('操作課堂：'+name+'\nStage '+s.stage_number+'：'+label+'？\n'+(label==='關閉'?'關閉後暫停作答，已提交答案保留，可再次開放。':'請確認是正確場次。')))return;
      actionBusy=true;
      refreshNonce++;$('sessionSelect').disabled=true;
      try{await rpc(fn,{p_session_id:session,p_stage:s.stage_number});say('已在「'+name+'」執行 Stage '+s.stage_number+'：'+label,'good')}
