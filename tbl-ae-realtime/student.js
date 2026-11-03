@@ -1,10 +1,12 @@
 let mySession=null,myTeamNumber=null,refreshing=false,studentBusy=false,studentNonce=0;
+const studentDrafts=new Map();
 let scannedCode=prefilledJoinCode();
 if(scannedCode){
  $('joinCode').value=scannedCode;
  window.history.replaceState(null,'',window.location.pathname+window.location.search);
 }
 function clearStudent(){
+ studentDrafts.clear();
  SessionTimer.clear();
  if(typeof clearStudentBuzzer==='function')clearStudentBuzzer();
  mySession=null;myTeamNumber=null;$('work').classList.add('hide');$('join').classList.remove('hide');
@@ -42,6 +44,7 @@ async function loadStudent(){
    catch(error){scoreLoadFailed=true}
    if(nonce!==studentNonce)return;
   }
+  if(mySession!==current.session_id||myTeamNumber!==current.team_number)studentDrafts.clear();
   mySession=current.session_id;myTeamNumber=current.team_number;
   if(participating)SessionTimer.sync(mySession);else SessionTimer.clear();
   const session=mySession,name=current.team_name,title=sessionStorage.getItem(STUDENT_TITLE_KEY)||'';
@@ -60,12 +63,26 @@ async function loadStudent(){
     detail.textContent=submitted+'｜'+(scoreLoadFailed?'得分暫時無法載入，稍後自動重試':score!==null&&score!==undefined&&Number.isFinite(Number(score))?'本階段得分：'+Number(score)+' 分':'本階段尚無得分紀錄');
    }else detail.textContent+='｜得分：待教師公布';
    box.append(detail);
-   if(participating&&stage.is_open&&!stage.is_locked&&!stage.is_revealed){
-    const choices=document.createElement('div');choices.className='choices';let selected=stage.my_answer||null;
+   const draftKey=JSON.stringify([session,stage.team_number,stage.stage_number]);
+   const editable=participating&&stage.is_open&&!stage.is_locked&&!stage.is_revealed;
+   let draft=studentDrafts.get(draftKey);
+   // Keep local edits across polling, but discard them when the server answer or stage changes.
+   if(!editable||draft&&(draft.baseAnswer!==(stage.my_answer||null)||draft.baseSubmittedAt!==(stage.my_submitted_at||null))){studentDrafts.delete(draftKey);draft=null}
+   if(editable){
+    const choices=document.createElement('div');choices.className='choices';let selected=draft?.answer||stage.my_answer||null;
+    const draftStatus=document.createElement('div');draftStatus.className='muted';draftStatus.role='status';
+    const showDraft=()=>{const pending=studentDrafts.get(draftKey);draftStatus.textContent=pending?(pending.sent?'已送出 '+pending.answer+'，正在同步確認…':'待提交選項：'+pending.answer+'（尚未送出）'):''};
+    showDraft();
     for(const answer of 'ABCDE'){
      const button=document.createElement('button');button.textContent=answer;
      if(answer===selected)button.classList.add('on');
-     button.onclick=()=>{selected=answer;choices.querySelectorAll('button').forEach(node=>node.classList.toggle('on',node.textContent===answer))};choices.append(button);
+     button.onclick=()=>{
+      if(studentBusy||nonce!==studentNonce||mySession!==session)return;
+      selected=answer;
+      if(answer===stage.my_answer)studentDrafts.delete(draftKey);
+      else studentDrafts.set(draftKey,{answer,baseAnswer:stage.my_answer||null,baseSubmittedAt:stage.my_submitted_at||null,sent:false});
+      choices.querySelectorAll('button').forEach(node=>node.classList.toggle('on',node.textContent===answer));showDraft();
+     };choices.append(button);
     }
     const send=document.createElement('button');send.textContent=stage.my_answer?'更新答案':'確認提交';
     send.onclick=async()=>{
@@ -73,11 +90,15 @@ async function loadStudent(){
      if(!selected){say('請先選擇 A–E','error');return}
      if(!confirm('目前組別：'+name+'\nStage '+stage.stage_number+'：提交 '+selected+'？\n若組別錯誤，請取消並按「離開組別／重新加入」。'))return;
      studentBusy=true;send.disabled=true;
-     try{await rpc('tbl_submit_answer',{p_session_id:session,p_stage:stage.stage_number,p_answer:selected});say('Stage '+stage.stage_number+' 已成功提交','good')}
+     try{
+      await rpc('tbl_submit_answer',{p_session_id:session,p_stage:stage.stage_number,p_answer:selected});
+      const pending=studentDrafts.get(draftKey);if(pending&&pending.answer===selected)pending.sent=true;
+      showDraft();say('Stage '+stage.stage_number+' 已成功提交','good');
+     }
      catch(error){say(errorText(error),'error')}
      finally{studentBusy=false;send.disabled=false;loadStudent()}
     };
-    const controls=document.createElement('div');controls.append(choices,send);box.append(controls);
+    const controls=document.createElement('div');controls.append(choices,send,draftStatus);box.append(controls);
    }
    area.append(box);
   }
